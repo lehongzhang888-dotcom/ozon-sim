@@ -824,7 +824,7 @@ function renderAddProduct(el) {
       </div>
       <div class="form-group"><label>${state.lang==='zh'?'商品描述':'Описание'}</label><textarea class="form-control" rows="4" placeholder="${state.lang==='zh'?'输入商品描述...':'Введите описание товара...'}"></textarea></div>
       <div class="form-group"><label>${state.lang==='zh'?'商品图片':'Изображения'}</label>
-        <div class="upload-zone" onclick="showToast('${state.lang==='zh'?'📸 图片上传功能（模拟）':'📸 Загрузка изображений (симуляция)}','success')">
+        <div class="upload-zone" onclick="showToast('${state.lang==='zh'?'📸 图片上传功能（模拟）':'📸 Загрузка изображений (симуляция)'},'success')">
           <div class="icon">📸</div>
           <p>${state.lang==='zh'?'点击或拖拽上传图片（最多9张，支持JPG/PNG）':'Нажмите или перетащите файлы (до 9 шт, JPG/PNG)'}</p>
         </div>
@@ -1447,7 +1447,7 @@ function renderReviews(el) {
         </div>
       `).join('')}
       <div class="text-center mt-16">
-        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📋 已加载更多评价':'📋 Загружено еще','success')">${state.lang==='zh'?'加载更多':'Еще'}</button>
+        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📋 已加载更多评价':'📋 Загружено еще'}','success')">${state.lang==='zh'?'加载更多':'Еще'}</button>
       </div>
     </div>
   `;
