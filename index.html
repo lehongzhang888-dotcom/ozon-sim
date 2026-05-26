@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ozon 卖家模拟系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js">
+</script>
+<style>
+:root {
+  --primary: #005BFF;
+  --primary-dark: #0040CC;
+  --primary-light: #E8F0FF;
+  --sidebar-bg: #0F1A2E;
+  --sidebar-text: #8899AA;
+  --sidebar-active: #005BFF;
+  --bg: #F5F7FA;
+  --card: #FFFFFF;
+  --border: #E8ECF1;
+  --text: #1A2332;
+  --text-secondary: #6B7A8D;
+  --success: #00B86B;
+  --warning: #FF9F43;
+  --danger: #FF5B5B;
+  --info: #54A0FF;
+  --radius: 8px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; height:100vh; }
+#app { display:flex; height:100vh; }
+
+/* Sidebar */
+#sidebar { width:240px; min-width:240px; background:var(--sidebar-bg); display:flex; flex-direction:column; overflow:hidden; transition:margin-left .3s; z-index:100; }
+#sidebar .logo { height:60px; display:flex; align-items:center; padding:0 20px; border-bottom:1px solid rgba(255,255,255,.06); gap:10px; }
+#sidebar .logo span { color:#fff; font-size:18px; font-weight:700; letter-spacing:.5px; }
+#sidebar .logo small { color:var(--primary); font-size:11px; background:rgba(0,91,255,.15); padding:2px 8px; border-radius:10px; }
+#nav-scroll { flex:1; overflow-y:auto; padding:8px 0; }
+#nav-scroll::-webkit-scrollbar { width:4px; }
+#nav-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:2px; }
+.nav-item { display:flex; align-items:center; padding:10px 20px; color:var(--sidebar-text); cursor:pointer; transition:all .15s; font-size:14px; position:relative; gap:10px; }
+.nav-item:hover { color:#fff; background:rgba(255,255,255,.05); }
+.nav-item.active { color:#fff; background:rgba(0,91,255,.15); }
+.nav-item.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--primary); border-radius:0 2px 2px 0; }
+.nav-item .icon { font-size:16px; width:20px; text-align:center; }
+.nav-item .arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.nav-item .arrow.open { transform:rotate(90deg); }
+.nav-item .badge { margin-left:auto; background:var(--danger); color:#fff; font-size:11px; padding:1px 7px; border-radius:10px; }
+.sub-menu { overflow:hidden; max-height:0; transition:max-height .3s ease; background:rgba(0,0,0,.15); }
+.sub-menu.open { max-height:500px; }
+.sub-item { padding:8px 20px 8px 50px; color:var(--sidebar-text); font-size:13px; cursor:pointer; transition:all .1s; }
+.sub-item:hover { color:#fff; background:rgba(255,255,255,.03); }
+.sub-item.active { color:var(--primary); }
+
+/* Main */
+#main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+#topbar { height:60px; min-height:60px; background:var(--card); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; gap:16px; }
+#topbar .hamburger { display:none; font-size:20px; cursor:pointer; padding:4px 8px; border-radius:4px; }
+#topbar .hamburger:hover { background:var(--bg); }
+#breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); }
+#breadcrumb span { cursor:default; }
+#breadcrumb .sep { color:var(--border); }
+#breadcrumb .current { color:var(--text); font-weight:500; }
+#topbar .spacer { flex:1; }
+#topbar .top-actions { display:flex; align-items:center; gap:12px; }
+#topbar .seller-name { font-size:13px; font-weight:500; color:var(--text); }
+#topbar .notif-bell { position:relative; cursor:pointer; font-size:18px; padding:4px; }
+#topbar .notif-bell .dot { position:absolute; top:2px; right:2px; width:8px; height:8px; background:var(--danger); border-radius:50%; border:2px solid var(--card); }
+.lang-switch { display:flex; gap:0; border:1px solid var(--border); border-radius:4px; overflow:hidden; font-size:12px; }
+.lang-switch div { padding:3px 8px; cursor:pointer; transition:all .1s; }
+.lang-switch div.active { background:var(--primary); color:#fff; }
+.lang-switch div:not(.active):hover { background:var(--bg); }
+
+/* Content */
+#content { flex:1; overflow-y:auto; padding:24px; }
+
+/* Cards */
+.card { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); padding:20px; margin-bottom:16px; }
+.card-title { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--text); }
+
+/* KPI */
+.kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+.kpi-card { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); padding:20px; }
+.kpi-card .label { font-size:13px; color:var(--text-secondary); margin-bottom:6px; }
+.kpi-card .value { font-size:24px; font-weight:700; color:var(--text); }
+.kpi-card .sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+.kpi-card .icon-bg { float:right; width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+
+/* Chart containers */
+.chart-row { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+.chart-full { grid-column:1/-1; }
+@media(max-width:900px){ .chart-row{grid-template-columns:1fr;} }
+
+/* Tables */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+table th { text-align:left; padding:10px 12px; border-bottom:2px solid var(--border); color:var(--text-secondary); font-weight:600; white-space:nowrap; cursor:pointer; user-select:none; }
+table th:hover { color:var(--primary); }
+table td { padding:10px 12px; border-bottom:1px solid var(--border); }
+table tr:hover { background:var(--bg); }
+table .sort-icon { font-size:10px; margin-left:4px; opacity:.4; }
+table th .sort-icon.active { opacity:1; color:var(--primary); }
+
+/* Status badges */
+.badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:500; }
+.badge-success { background:#E6F9F1; color:#00B86B; }
+.badge-warning { background:#FFF3E6; color:#FF9F43; }
+.badge-danger { background:#FFE8E8; color:#FF5B5B; }
+.badge-info { background:#E8F0FF; color:#005BFF; }
+.badge-default { background:#F0F2F5; color:#6B7A8D; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; text-decoration:none; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-dark); }
+.btn-outline { border:1px solid var(--border); background:var(--card); color:var(--text); }
+.btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+.btn-success { background:var(--success); color:#fff; }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-sm { padding:4px 10px; font-size:12px; }
+.btn-group { display:flex; gap:8px; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* Forms */
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:13px; font-weight:500; margin-bottom:6px; color:var(--text); }
+.form-group .hint { font-size:11px; color:var(--text-secondary); margin-top:4px; }
+.form-control { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; color:var(--text); background:var(--card); transition:border-color .15s; }
+.form-control:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(0,91,255,.1); }
+select.form-control { appearance:auto; }
+textarea.form-control { resize:vertical; min-height:80px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+@media(max-width:600px){ .form-row,.form-row-3{grid-template-columns:1fr;} }
+
+/* Upload zone */
+.upload-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:40px; text-align:center; cursor:pointer; transition:all .15s; }
+.upload-zone:hover { border-color:var(--primary); background:var(--primary-light); }
+.upload-zone .icon { font-size:36px; margin-bottom:8px; }
+.upload-zone p { font-size:13px; color:var(--text-secondary); }
+
+/* Toast */
+#toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+.toast { padding:12px 20px; background:var(--card); border-radius:var(--radius); box-shadow:0 4px 20px rgba(0,0,0,.12); border-left:4px solid var(--primary); font-size:13px; display:flex; align-items:center; gap:8px; animation:slideIn .3s ease; min-width:240px; max-width:360px; }
+.toast.success { border-left-color:var(--success); }
+.toast.error { border-left-color:var(--danger); }
+.toast.warning { border-left-color:var(--warning); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+
+/* Modal overlay */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; display:flex; align-items:center; justify-content:center; animation:fadeIn .2s; }
+.modal-box { background:var(--card); border-radius:12px; padding:24px; min-width:360px; max-width:560px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.15); }
+.modal-box h3 { margin-bottom:16px; font-size:16px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+/* Detail panel */
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; font-size:13px; margin:12px 0; }
+.detail-grid .dl { color:var(--text-secondary); }
+.detail-grid .dd { font-weight:500; }
+.timeline { position:relative; padding-left:20px; margin:12px 0; }
+.timeline::before { content:''; position:absolute; left:6px; top:4px; bottom:4px; width:2px; background:var(--border); }
+.timeline-item { position:relative; padding:0 0 14px 16px; font-size:13px; }
+.timeline-item::before { content:''; position:absolute; left:-14px; top:6px; width:8px; height:8px; border-radius:50%; background:var(--primary); }
+.timeline-item:last-child { padding-bottom:0; }
+.timeline-item .time { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+
+/* Checkbox row */
+.check-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.check-row select,.check-row input { font-size:13px; }
+.search-input { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; width:200px; }
+.search-input:focus { outline:none; border-color:var(--primary); }
+
+/* Pagination */
+.pagination { display:flex; align-items:center; gap:4px; margin-top:16px; justify-content:center; }
+.pagination div { padding:6px 12px; border:1px solid var(--border); border-radius:4px; font-size:13px; cursor:pointer; transition:all .1s; }
+.pagination div:hover { border-color:var(--primary); color:var(--primary); }
+.pagination div.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.pagination div.disabled { opacity:.4; cursor:default; }
+
+/* Sections */
+.section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.section-header h2 { font-size:18px; font-weight:600; }
+
+/* Category cascade */
+.cascade-row { display:flex; gap:12px; }
+.cascade-row select { flex:1; }
+
+/* Marketing cards */
+.promo-card { border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
+.promo-card .promo-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.promo-card .promo-meta { display:flex; gap:16px; font-size:12px; color:var(--text-secondary); }
+
+/* Logistics cards */
+.logi-card { border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.logi-card .info { font-size:13px; }
+.logi-card .info .title { font-weight:500; }
+.logi-card .info .desc { color:var(--text-secondary); font-size:12px; margin-top:2px; }
+
+/* Rating */
+.stars { color:#FF9F43; font-size:14px; }
+
+/* Mobile overlay */
+#sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:99; }
+@media(max-width:768px){
+  #sidebar { position:fixed; left:0; top:0; bottom:0; z-index:100; margin-left:-240px; }
+  #sidebar.open { margin-left:0; }
+  #sidebar-overlay.open { display:block; }
+  #topbar .hamburger { display:block; }
+  #content { padding:16px; }
+}
+
+/* Misc */
+.text-right { text-align:right; }
+.text-center { text-align:center; }
+.mt-8 { margin-top:8px; }
+.mt-16 { margin-top:16px; }
+.mb-8 { margin-bottom:8px; }
+.mb-16 { margin-bottom:16px; }
+.flex { display:flex; }
+.flex-center { display:flex; align-items:center; }
+.gap-8 { gap:8px; }
+.gap-16 { gap:16px; }
+.truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.thumb { width:40px; height:40px; border-radius:6px; object-fit:cover; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:18px; }
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-secondary); }
+.empty-state .icon { font-size:48px; margin-bottom:12px; }
+
+/* Collapsible filter */
+.filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+.filter-bar select,.filter-bar input { padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; }
+
+/* Review card */
+.review-card { padding:16px 0; border-bottom:1px solid var(--border); }
+.review-card:last-child { border-bottom:none; }
+.review-card .review-header { display:flex; justify-content:space-between; margin-bottom:6px; }
+.review-card .reviewer { font-weight:500; font-size:13px; }
+.review-card .review-date { font-size:12px; color:var(--text-secondary); }
+.review-card .review-text { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+.review-card .review-product { font-size:12px; color:var(--primary); margin-top:4px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="logo">
+      <span>OZON</span>
+      <small>卖家版</small>
+    </div>
+    <div id="nav-scroll"></div>
+  </aside>
+
+  <!-- Main -->
+  <div id="main">
+    <header id="topbar">
+      <div class="hamburger" onclick="toggleSidebar()">☰</div>
+      <div id="breadcrumb"></div>
+      <div class="spacer"></div>
+      <div class="top-actions">
+        <span class="seller-name" id="sellerName">LEHONG TRADE CO.</span>
+        <div class="notif-bell" onclick="showToast('📬 您有3条未读消息','')">🔔<span class="dot"></span></div>
+        <div class="lang-switch" id="langSwitch">
+          <div class="active" data-lang="zh" onclick="setLanguage('zh')">中</div>
+          <div data-lang="ru" onclick="setLanguage('ru')">RU</div>
+        </div>
+      </div>
+    </header>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ============ CONFIG ============
+const LANG = {
+  zh: { dashboard:'工作台', products:'商品管理', orders:'订单管理', marketing:'营销推广', analytics:'数据分析', logistics:'物流管理', finance:'财务结算', settings:'店铺设置' },
+  ru: { dashboard:'Панель', products:'Товары', orders:'Заказы', marketing:'Маркетинг', analytics:'Аналитика', logistics:'Логистика', finance:'Финансы', settings:'Настройки' }
+};
+
+// ============ MOCK DATA ============
+const MOCK = {
+  dashboard: {
+    kpi: { sales:158420, orders:23, products:156, rating:4.8 },
+    trend: [42300, 38700, 45600, 52100, 48900, 54700, 58600],
+    trendDates: ['05-20','05-21','05-22','05-23','05-24','05-25','05-26'],
+    pendingOrders: [
+      { id:'OZN-24052601', product:'手机支架 车载磁吸', buyer:'Иван Петров', amount:1890, time:'2026-05-26 14:30', status:'待确认' },
+      { id:'OZN-24052602', product:'无线蓝牙耳机 X5', buyer:'Елена Смирнова', amount:4590, time:'2026-05-26 13:15', status:'待确认' },
+      { id:'OZN-24052603', product:'LED 护眼台灯', buyer:'Алексей Козлов', amount:3200, time:'2026-05-26 11:40', status:'备货中' },
+      { id:'OZN-24052604', product:'不锈钢保温杯 1L', buyer:'Мария Иванова', amount:2150, time:'2026-05-26 10:20', status:'待确认' },
+      { id:'OZN-24052605', product:'汽车遮阳挡 折叠款', buyer:'Дмитрий Новиков', amount:1680, time:'2026-05-26 09:05', status:'备货中' }
+    ],
+    notifications: [
+      { icon:'📦', text:'订单 OZN-24052601 已等待确认超过2小时', time:'5分钟前' },
+      { icon:'💰', text:'本期结算金额 ₽124,580 已生成对账单', time:'1小时前' },
+      { icon:'⚠️', text:'商品 "智能插座 WiFi版" 库存低于预警线(≤10)', time:'2小时前' }
+    ]
+  },
+  products: [
+    { id:1, name:'手机支架 车载磁吸 Magsafe', nameRu:'Автомобильный магнитный держатель', sku:'ACC-MH-001', category:'电子配件>手机配件>支架', price:1890, oldPrice:2590, stock:320, status:'在售', image:'📱' },
+    { id:2, name:'无线蓝牙耳机 X5 降噪版', nameRu:'Беспроводные наушники X5', sku:'ELEC-BT-002', category:'电子配件>音频设备>耳机', price:4590, oldPrice:6990, stock:158, status:'在售', image:'🎧' },
+    { id:3, name:'LED 护眼台灯 三档调光', nameRu:'LED настольная лампа', sku:'HOME-LT-003', category:'家居>灯具>台灯', price:3200, oldPrice:4200, stock:85, status:'在售', image:'💡' },
+    { id:4, name:'不锈钢保温杯 1L 真空', nameRu:'Термокружка 1L', sku:'HOME-CP-004', category:'家居>厨房用品>水具', price:2150, oldPrice:2800, stock:200, status:'在售', image:'🫗' },
+    { id:5, name:'智能插座 WiFi版 定时', nameRu:'Умная розетка WiFi', sku:'ELEC-SO-005', category:'电子配件>智能家居>插座', price:1680, oldPrice:2200, stock:8, status:'在售', image:'🔌' },
+    { id:6, name:'车载吸尘器 无线大功率', nameRu:'Автомобильный пылесос', sku:'AUTO-VC-006', category:'汽配>内饰清洁>吸尘器', price:5890, oldPrice:7900, stock:42, status:'在售', image:'🧹' },
+    { id:7, name:'电动螺丝刀 充电式套装', nameRu:'Электродрель аккумуляторная', sku:'TOOL-ED-007', category:'五金>电动工具>螺丝刀', price:4200, oldPrice:5600, stock:65, status:'审核中', image:'🔧' },
+    { id:8, name:'瑜伽垫 TPE 加厚6mm', nameRu:'Коврик для йоги TPE', sku:'SPRT-YM-008', category:'家居>运动用品>瑜伽', price:2450, oldPrice:3200, stock:0, status:'已下架', image:'🧘' },
+    { id:9, name:'汽车座椅头枕 记忆棉', nameRu:'Подголовник автомобильный', sku:'AUTO-HR-009', category:'汽配>内饰>头枕', price:1350, oldPrice:1800, stock:180, status:'在售', image:'🛋️' },
+    { id:10, name:'USB-C 充电线 快充 2M', nameRu:'Кабель USB-C быстрая зарядка', sku:'ACC-CB-010', category:'电子配件>手机配件>数据线', price:890, oldPrice:1200, stock:500, status:'在售', image:'🔋' }
+  ],
+  categories: [
+    { name:'电子配件', subs:[{ name:'手机配件', subs:['手机壳','贴膜','支架','数据线','充电器'] },{ name:'音频设备', subs:['耳机','音箱','麦克风'] },{ name:'智能家居', subs:['插座','摄像头','传感器'] }] },
+    { name:'家居', subs:[{ name:'灯具', subs:['台灯','吸顶灯','氛围灯'] },{ name:'厨房用品', subs:['水具','厨具','收纳'] },{ name:'运动用品', subs:['瑜伽','健身','户外'] }] },
+    { name:'五金', subs:[{ name:'电动工具', subs:['螺丝刀','电钻','打磨机'] },{ name:'手动工具', subs:['扳手','钳子','螺丝刀套装'] }] },
+    { name:'汽配', subs:[{ name:'内饰', subs:['头枕','脚垫','座套'] },{ name:'清洁', subs:['吸尘器','洗车','护理'] }] }
+  ],
+  orders: [
+    { id:'OZN-24052601', product:'手机支架 车载磁吸', sku:'ACC-MH-001', buyer:'Иван Петров', buyerAddr:'г. Москва, ул. Тверская, д.15, кв.42', amount:1890, qty:2, time:'2026-05-26 14:30', status:'待确认', logistics:'FBS', tracking:'', items:[{ name:'手机支架 车载磁吸', qty:2, price:945 }], events:[{ time:'2026-05-26 14:30', text:'买家已下单' }] },
+    { id:'OZN-24052602', product:'无线蓝牙耳机 X5', sku:'ELEC-BT-002', buyer:'Елена Смирнова', buyerAddr:'г. Санкт-Петербург, Невский пр., д.88', amount:4590, qty:1, time:'2026-05-26 13:15', status:'待确认', logistics:'FBO', tracking:'', items:[{ name:'无线蓝牙耳机 X5 降噪版', qty:1, price:4590 }], events:[{ time:'2026-05-26 13:15', text:'买家已下单' }] },
+    { id:'OZN-24052603', product:'LED 护眼台灯', sku:'HOME-LT-003', buyer:'Алексей Козлов', buyerAddr:'г. Екатеринбург, ул. Ленина, д.52', amount:3200, qty:1, time:'2026-05-26 11:40', status:'备货中', logistics:'FBS', tracking:'OZ-RU-20260526-001', items:[{ name:'LED 护眼台灯 三档调光', qty:1, price:3200 }], events:[{ time:'2026-05-26 11:40', text:'买家已下单' },{ time:'2026-05-26 12:00', text:'订单已确认，开始备货' }] },
+    { id:'OZN-24052604', product:'不锈钢保温杯 1L', sku:'HOME-CP-004', buyer:'Мария Иванова', buyerAddr:'г. Новосибирск, ул. Советская, д.21', amount:4300, qty:2, time:'2026-05-26 10:20', status:'待确认', logistics:'FBS', tracking:'', items:[{ name:'不锈钢保温杯 1L 真空', qty:2, price:2150 }], events:[{ time:'2026-05-26 10:20', text:'买家已下单' }] },
+    { id:'OZN-24052505', product:'汽车遮阳挡 折叠款', sku:'AUTO-VC-006', buyer:'Дмитрий Новиков', buyerAddr:'г. Казань, ул. Баумана, д.30', amount:1680, qty:1, time:'2026-05-25 16:50', status:'已发货', logistics:'FBS', tracking:'OZ-RU-20260525-003', items:[{ name:'汽车遮阳挡 折叠款', qty:1, price:1680 }], events:[{ time:'2026-05-25 16:50', text:'买家已下单' },{ time:'2026-05-25 17:20', text:'订单已确认' },{ time:'2026-05-26 09:00', text:'已发货，快递单号 OZ-RU-20260525-003' }] },
+    { id:'OZN-24052506', product:'电动螺丝刀 充电式套装', sku:'TOOL-ED-007', buyer:'Сергей Федоров', buyerAddr:'г. Самара, ул. Московское ш., д.15', amount:4200, qty:1, time:'2026-05-25 14:00', status:'已签收', logistics:'FBO', tracking:'OZ-RU-20260525-002', items:[{ name:'电动螺丝刀 充电式套装', qty:1, price:4200 }], events:[{ time:'2026-05-25 14:00', text:'买家已下单' },{ time:'2026-05-25 14:30', text:'订单已确认' },{ time:'2026-05-25 18:00', text:'已发货' },{ time:'2026-05-26 12:00', text:'已签收' }] },
+    { id:'OZN-24052407', product:'瑜伽垫 TPE 加厚6mm', sku:'SPRT-YM-008', buyer:'Анна Попова', buyerAddr:'г. Ростов-на-Дону, ул. Большая Садовая, д.45', amount:2450, qty:1, time:'2026-05-24 11:30', status:'已完成', logistics:'FBS', tracking:'OZ-RU-20260524-005', items:[{ name:'瑜伽垫 TPE 加厚6mm', qty:1, price:2450 }], events:[{ time:'2026-05-24 11:30', text:'买家已下单' },{ time:'2026-05-24 12:00', text:'订单已确认' },{ time:'2026-05-24 16:00', text:'已发货' },{ time:'2026-05-25 14:00', text:'已签收' },{ time:'2026-05-26 10:00', text:'订单已完成' }] },
+    { id:'OZN-24052408', product:'USB-C 充电线 快充', sku:'ACC-CB-010', buyer:'Ольга Морозова', buyerAddr:'г. Уфа, ул. Октября, д.78', amount:1780, qty:2, time:'2026-05-24 09:15', status:'已完成', logistics:'FBO', tracking:'OZ-RU-20260524-006', items:[{ name:'USB-C 充电线 快充 2M', qty:2, price:890 }], events:[{ time:'2026-05-24 09:15', text:'买家已下单' },{ time:'2026-05-24 10:00', text:'订单已确认' },{ time:'2026-05-24 14:00', text:'已发货' },{ time:'2026-05-25 16:00', text:'已签收' },{ time:'2026-05-26 08:00', text:'订单已完成' }] },
+    { id:'OZN-24052309', product:'汽车座椅头枕 记忆棉', sku:'AUTO-HR-009', buyer:'Николай Соколов', buyerAddr:'г. Красноярск, ул. Мира, д.12', amount:1350, qty:1, time:'2026-05-23 18:20', status:'退货/退款', logistics:'FBS', tracking:'OZ-RU-20260523-004', items:[{ name:'汽车座椅头枕 记忆棉', qty:1, price:1350 }], events:[{ time:'2026-05-23 18:20', text:'买家已下单' },{ time:'2026-05-23 19:00', text:'订单已确认' },{ time:'2026-05-24 10:00', text:'已发货' },{ time:'2026-05-25 14:00', text:'已签收' },{ time:'2026-05-26 09:00', text:'买家申请退货退款' }] },
+    { id:'OZN-24052310', product:'车载吸尘器 无线', sku:'AUTO-VC-006', buyer:'Татьяна Белова', buyerAddr:'г. Воронеж, ул. Пушкинская, д.33', amount:5890, qty:1, time:'2026-05-23 15:00', status:'已发货', logistics:'FBO', tracking:'OZ-RU-20260523-007', items:[{ name:'车载吸尘器 无线大功率', qty:1, price:5890 }], events:[{ time:'2026-05-23 15:00', text:'买家已下单' },{ time:'2026-05-23 15:30', text:'订单已确认' },{ time:'2026-05-24 10:00', text:'已发货' }] }
+  ],
+  marketing: {
+    promotions: [
+      { name:'618大促闪购周', type:'闪购', discount:'7折', budget:50000, start:'2026-06-01', end:'2026-06-07', status:'未开始' },
+      { name:'夏季家居专场', type:'满减', discount:'满3000减500', budget:30000, start:'2026-05-20', end:'2026-06-05', status:'进行中' },
+      { name:'新品尝鲜折扣', type:'折扣', discount:'8折', budget:20000, start:'2026-05-15', end:'2026-05-30', status:'进行中' },
+      { name:'五一出行季', type:'闪购', discount:'6折', budget:40000, start:'2026-04-28', end:'2026-05-05', status:'已结束' }
+    ],
+    ads: [
+      { keyword:'手机支架', bid:45, impressions:12300, clicks:420, cost:18900, orders:38, revenue:71820 },
+      { keyword:'蓝牙耳机', bid:80, impressions:8900, clicks:680, cost:54400, orders:52, revenue:238680 },
+      { keyword:'保温杯', bid:35, impressions:15600, clicks:310, cost:10850, orders:25, revenue:53750 },
+      { keyword:'车载吸尘器', bid:60, impressions:4200, clicks:180, cost:10800, orders:12, revenue:70680 }
+    ],
+    coupons: [
+      { code:'SUMMER500', type:'满减', value:'满5000减500', usage:'已用42/200', expiry:'2026-06-30', status:'进行中' },
+      { code:'NEW10', type:'折扣', value:'全场9折', usage:'已用88/500', expiry:'2026-06-15', status:'进行中' },
+      { code:'WELCOME', type:'折扣', value:'新用户8折', usage:'已用156/300', expiry:'2026-05-20', status:'已过期' }
+    ]
+  },
+  analytics: {
+    sales:[458000, 520000, 486000, 612000, 578000, 643000, 698000],
+    dates:['05-20','05-21','05-22','05-23','05-24','05-25','05-26'],
+    kpi:{ sales:698000, orders:186, avgOrder:3753, convRate:3.2 },
+    topProducts:[
+      { name:'无线蓝牙耳机 X5', sales:189000 },
+      { name:'手机支架 磁吸', sales:142000 },
+      { name:'LED 护眼台灯', sales:96000 },
+      { name:'不锈钢保温杯 1L', sales:86000 },
+      { name:'车载吸尘器', sales:70680 }
+    ],
+    categoryShare: { '电子配件':35, '家居':28, '汽配':20, '五金':12, '其他':5 },
+    trafficSources: { '搜索流量':40, '推荐流量':28, '广告流量':20, '外部流量':12 }
+  },
+  logistics: {
+    fbo: [
+      { name:'手机支架 磁吸', sku:'ACC-MH-001', stock:320, alert:50, warehouse:'莫斯科 FBO-1' },
+      { name:'无线蓝牙耳机 X5', sku:'ELEC-BT-002', stock:158, alert:30, warehouse:'莫斯科 FBO-1' },
+      { name:'LED 护眼台灯', sku:'HOME-LT-003', stock:85, alert:20, warehouse:'圣彼得堡 FBO-2' },
+      { name:'USB-C 充电线', sku:'ACC-CB-010', stock:500, alert:100, warehouse:'莫斯科 FBO-1' }
+    ],
+    fbsTemplates: [
+      { name:'标准快递', carrier:'俄罗斯邮政', cost:350, days:'3-7', regions:'全俄' },
+      { name:'经济配送', carrier:'Boxberry', cost:250, days:'5-10', regions:'全俄' },
+      { name:'次日达', carrier:'СДЭК', cost:550, days:'1-2', regions:'莫斯科/圣彼得堡' }
+    ],
+    returns: { address:'г. Москва, ул. Деловая, д.12, склад B, стр.3', contact:'李洪', phone:'+7 (999) 123-4567' }
+  },
+  finance: {
+    currentPeriod:{ sales:698000, commission:69800, service:34800, net:593400, orders:186 },
+    commissionRates:[
+      { category:'电子配件', rate:'5%' },
+      { category:'家居', rate:'8%' },
+      { category:'五金', rate:'10%' },
+      { category:'汽配', rate:'12%' },
+      { category:'其他', rate:'15%' }
+    ],
+    recentIncome:[
+      { date:'2026-05-26', orderId:'OZN-24052601', amount:1890, commission:94, service:56, net:1740 },
+      { date:'2026-05-26', orderId:'OZN-24052602', amount:4590, commission:229, service:137, net:4224 },
+      { date:'2026-05-25', orderId:'OZN-24052505', amount:1680, commission:168, service:50, net:1462 },
+      { date:'2026-05-25', orderId:'OZN-24052506', amount:4200, commission:420, service:126, net:3654 },
+      { date:'2026-05-24', orderId:'OZN-24052407', amount:2450, commission:196, service:73, net:2181 },
+      { date:'2026-05-24', orderId:'OZN-24052408', amount:1780, commission:89, service:53, net:1638 },
+      { date:'2026-05-23', orderId:'OZN-24052309', amount:1350, commission:162, service:40, net:1148 },
+      { date:'2026-05-23', orderId:'OZN-24052310', amount:5890, commission:706, service:176, net:5008 }
+    ]
+  },
+  settings: {
+    shopName:'LEHONG TRADE CO.',
+    contact:'李洪',
+    phone:'+86 136 **** 8888',
+    email:'lihong@lehongtrade.ru',
+    description:'LEHONG TRADE 专注俄罗斯市场跨境电商品类涵盖电子配件、家居用品、五金工具、汽车配件等。我们在中国拥有稳定供应链在莫斯科设有海外仓。',
+    address:'广东省深圳市南山区科技园路88号',
+    regNumber:'CHN-2024-OZ-00888',
+    brand: { logo:'🏢', banner:'#005BFF', name:'LEHONG TRADE', slogan:'品质跨境 服务俄罗斯' },
+    reviews:[
+      { reviewer:'Анна К.', rating:5, text:'Отличное качество, быстрая доставка! 质量非常好，发货很快！', date:'2026-05-25', product:'手机支架 车载磁吸' },
+      { reviewer:'Павел М.', rating:4, text:'Хороший товар за свою цену. 性价比不错。', date:'2026-05-24', product:'无线蓝牙耳机 X5' },
+      { reviewer:'Екатерина В.', rating:5, text:'Весь заказ пришел в целости, упаковка отличная. 包装很好。', date:'2026-05-22', product:'LED 护眼台灯' },
+      { reviewer:'Максим Д.', rating:4, text:'Соответствует описанию. 和描述一致。', date:'2026-05-20', product:'不锈钢保温杯 1L' }
+    ]
+  }
+};
+
+// ============ STATE ============
+const state = {
+  module:'dashboard',
+  sub:null,
+  lang:'zh',
+  expanded:{},
+  sidebarOpen:false,
+  charts:{},
+  productSort:{col:null,asc:true}
+};
+
+// ============ NAVIGATION CONFIG ============
+const NAV = [
+  { id:'dashboard', icon:'📊', label:{zh:'工作台',ru:'Панель'} },
+  { id:'products', icon:'📦', label:{zh:'商品管理',ru:'Товары'}, subs:[
+    { id:'product-list', label:{zh:'商品列表',ru:'Список'} },
+    { id:'add-product', label:{zh:'添加商品',ru:'Добавить'} },
+    { id:'batch-upload', label:{zh:'批量上传',ru:'Массовая загрузка'} },
+    { id:'category-mgmt', label:{zh:'类目管理',ru:'Категории'} }
+  ]},
+  { id:'orders', icon:'📋', label:{zh:'订单管理',ru:'Заказы'}, subs:[
+    { id:'all-orders', label:{zh:'全部订单',ru:'Все заказы'} },
+    { id:'pending-ship', label:{zh:'待发货',ru:'Ожидают отправки'} },
+    { id:'shipped', label:{zh:'已发货',ru:'Отправлено'} },
+    { id:'returns', label:{zh:'退货/退款',ru:'Возвраты'} }
+  ]},
+  { id:'marketing', icon:'💰', label:{zh:'营销推广',ru:'Маркетинг'}, subs:[
+    { id:'search-ads', label:{zh:'搜索广告',ru:'Реклама'} },
+    { id:'promotions', label:{zh:'促销活动',ru:'Акции'} },
+    { id:'coupons', label:{zh:'优惠券管理',ru:'Купоны'} },
+    { id:'ozon-premium', label:{zh:'Ozon Premium',ru:'Ozon Premium'} }
+  ]},
+  { id:'analytics', icon:'📈', label:{zh:'数据分析',ru:'Аналитика'}, subs:[
+    { id:'sales-overview', label:{zh:'销售概览',ru:'Обзор продаж'} },
+    { id:'traffic', label:{zh:'流量分析',ru:'Трафик'} },
+    { id:'funnel', label:{zh:'转化漏斗',ru:'Воронка'} },
+    { id:'competitors', label:{zh:'竞品对比',ru:'Конкуренты'} }
+  ]},
+  { id:'logistics', icon:'🚚', label:{zh:'物流管理',ru:'Логистика'}, subs:[
+    { id:'fbo', label:{zh:'FBO仓库',ru:'FBO склад'} },
+    { id:'fbs', label:{zh:'FBS发货',ru:'FBS доставка'} },
+    { id:'logi-templates', label:{zh:'物流模板',ru:'Шаблоны'} },
+    { id:'return-addr', label:{zh:'退货地址',ru:'Адрес возврата'} }
+  ]},
+  { id:'finance', icon:'💵', label:{zh:'财务结算',ru:'Финансы'}, subs:[
+    { id:'income', label:{zh:'收入明细',ru:'Доходы'} },
+    { id:'commission', label:{zh:'佣金明细',ru:'Комиссии'} },
+    { id:'withdrawal', label:{zh:'提现记录',ru:'Вывод средств'} },
+    { id:'invoices', label:{zh:'发票管理',ru:'Счета'} }
+  ]},
+  { id:'settings', icon:'⚙️', label:{zh:'店铺设置',ru:'Настройки'}, subs:[
+    { id:'shop-info', label:{zh:'店铺信息',ru:'Информация'} },
+    { id:'brand', label:{zh:'品牌馆装修',ru:'Бренд'} },
+    { id:'reviews', label:{zh:'用户评价',ru:'Отзывы'} },
+    { id:'security', label:{zh:'账号安全',ru:'Безопасность'} }
+  ]}
+];
+
+// ============ UTILITIES ============
+function t(texts) { return texts && texts[state.lang] ? texts[state.lang] : texts; }
+function fmt(n) { return n.toLocaleString('ru-RU'); }
+function fmtRub(n) { return '₽' + fmt(n); }
+function fmtCny(n) { return '≈¥' + fmt(Math.round(n*0.08)) }
+function fmtRubCny(n) { return fmtRub(n) + ' <span style="color:var(--text-secondary);font-size:11px">('+fmtCny(n)+')</span>'; }
+function statusBadge(s) {
+  const m={'在售':'success','审核中':'warning','已下架':'danger','待确认':'warning','备货中':'info','已发货':'info','已签收':'success','已完成':'success','退货/退款':'danger','未开始':'default','进行中':'success','已结束':'default','已过期':'default'};
+  return `<span class="badge badge-${m[s]||'default'}">${s}</span>`;
+}
+function orderStatusBadge(s) { return statusBadge(s); }
+
+function showToast(msg, type='') {
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.innerHTML=msg;
+  c.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(100%)'; el.style.transition='all .3s'; setTimeout(()=>el.remove(),300); },3000);
+}
+
+function toggleSidebar() {
+  state.sidebarOpen=!state.sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('open',state.sidebarOpen);
+  document.getElementById('sidebar-overlay').classList.toggle('open',state.sidebarOpen);
+}
+
+function setLanguage(l) {
+  state.lang=l;
+  document.querySelectorAll('#langSwitch div').forEach(d=>d.classList.toggle('active',d.dataset.lang===l));
+  renderNav();
+  renderBreadcrumb();
+  navigate(state.module,state.sub);
+}
+
+// ============ NAVIGATION ============
+function renderNav() {
+  const el=document.getElementById('nav-scroll');
+  let html='';
+  NAV.forEach(item=>{
+    const isActive=state.module===item.id;
+    const expanded=state.expanded[item.id];
+    const label=t(item.label);
+    html+=`<div class="nav-item${isActive?' active':''}" onclick="toggleNav('${item.id}')">
+      <span class="icon">${item.icon}</span><span>${label}</span>
+      ${item.subs?`<span class="arrow${expanded?' open':''}">▶</span>`:''}
+    </div>`;
+    if(item.subs){
+      html+=`<div class="sub-menu${expanded?' open':''}">`;
+      item.subs.forEach(sub=>{
+        const subActive=state.sub===sub.id;
+        html+=`<div class="sub-item${subActive?' active':''}" onclick="navigate('${item.id}','${sub.id}')">${t(sub.label)}</div>`;
+      });
+      html+=`</div>`;
+    }
+  });
+  el.innerHTML=html;
+}
+
+function toggleNav(id) {
+  const item=NAV.find(n=>n.id===id);
+  if(item&&item.subs){
+    if(state.expanded[id]){ delete state.expanded[id]; }
+    else { state.expanded[id]=true; }
+    renderNav();
+  } else {
+    navigate(id,null);
+  }
+}
+
+function navigate(module,sub) {
+  state.module=module;
+  state.sub=sub;
+  // Auto-expand parent nav
+  NAV.forEach(n=>{ if(n.id===module&&n.subs) state.expanded[module]=true; });
+  renderNav();
+  renderBreadcrumb();
+  renderContent();
+}
+
+function renderBreadcrumb() {
+  const el=document.getElementById('breadcrumb');
+  const item=NAV.find(n=>n.id===state.module);
+  if(!item){ el.innerHTML=''; return; }
+  let html=`<span>🏠</span><span class="sep">/</span><span>${t(item.label)}</span>`;
+  if(state.sub&&item.subs){
+    const sub=item.subs.find(s=>s.id===state.sub);
+    if(sub) html+=`<span class="sep">/</span><span class="current">${t(sub.label)}</span>`;
+  }
+  el.innerHTML=html;
+}
+
+// ============ CONTENT RENDERER ============
+function renderContent() {
+  const el=document.getElementById('content');
+  const m=state.module,s=state.sub;
+  if(m==='dashboard') renderDashboard(el);
+  else if(m==='products'){
+    if(s==='add-product') renderAddProduct(el);
+    else if(s==='batch-upload') renderBatchUpload(el);
+    else if(s==='category-mgmt') renderCategoryMgmt(el);
+    else renderProductList(el);
+  }
+  else if(m==='orders'){
+    if(s==='pending-ship') renderOrders(el,'待发货');
+    else if(s==='shipped') renderOrders(el,'已发货');
+    else if(s==='returns') renderOrders(el,'退货/退款');
+    else renderOrders(el);
+  }
+  else if(m==='marketing'){
+    if(s==='search-ads') renderSearchAds(el);
+    else if(s==='promotions') renderPromotions(el);
+    else if(s==='coupons') renderCoupons(el);
+    else if(s==='ozon-premium') renderOzonPremium(el);
+    else renderPromotions(el);
+  }
+  else if(m==='analytics'){
+    if(s==='sales-overview') renderSalesOverview(el);
+    else if(s==='traffic') renderTraffic(el);
+    else if(s==='funnel') renderFunnel(el);
+    else if(s==='competitors') renderCompetitors(el);
+    else renderSalesOverview(el);
+  }
+  else if(m==='logistics'){
+    if(s==='fbo') renderFBO(el);
+    else if(s==='fbs') renderFBS(el);
+    else if(s==='logi-templates') renderLogiTemplates(el);
+    else if(s==='return-addr') renderReturnAddr(el);
+    else renderFBO(el);
+  }
+  else if(m==='finance'){
+    if(s==='income') renderIncome(el);
+    else if(s==='commission') renderCommission(el);
+    else if(s==='withdrawal') renderWithdrawal(el);
+    else if(s==='invoices') renderInvoices(el);
+    else renderIncome(el);
+  }
+  else if(m==='settings'){
+    if(s==='shop-info') renderShopInfo(el);
+    else if(s==='brand') renderBrand(el);
+    else if(s==='reviews') renderReviews(el);
+    else if(s==='security') renderSecurity(el);
+    else renderShopInfo(el);
+  }
+}
+
+// ============ DASHBOARD ============
+let dashboardChart=null;
+function renderDashboard(el) {
+  const d=MOCK.dashboard;
+  el.innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="icon-bg" style="background:var(--primary-light);color:var(--primary);">💰</div>
+        <div class="label">${state.lang==='zh'?'今日销售额':'Продажи сегодня'}</div>
+        <div class="value">${fmtRub(d.kpi.sales)}</div>
+        <div class="sub">${fmtCny(d.kpi.sales)}</div>
+      </div>
+      <div class="kpi-card"><div class="icon-bg" style="background:#E6F9F1;color:var(--success);">📋</div>
+        <div class="label">${state.lang==='zh'?'今日订单':'Заказы сегодня'}</div>
+        <div class="value">${d.kpi.orders} ${state.lang==='zh'?'笔':'шт'}</div>
+        <div class="sub">${state.lang==='zh'?'同比昨日 +15%':'+15% ко вчера'}</div>
+      </div>
+      <div class="kpi-card"><div class="icon-bg" style="background:#FFF3E6;color:var(--warning);">📦</div>
+        <div class="label">${state.lang==='zh'?'在售商品':'Товары в продаже'}</div>
+        <div class="value">${d.kpi.products}</div>
+        <div class="sub">${state.lang==='zh'?'审核中 2 个':'На проверке: 2'}</div>
+      </div>
+      <div class="kpi-card"><div class="icon-bg" style="background:#E8F0FF;color:var(--info);">⭐</div>
+        <div class="label">${state.lang==='zh'?'店铺评分':'Рейтинг магазина'}</div>
+        <div class="value">${d.kpi.rating}</div>
+        <div class="sub">${state.lang==='zh'?'好评率 98%':'98% положительных'}</div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="card chart-full"><div class="card-title">${state.lang==='zh'?'近7日销售趋势':'Тренд продаж за 7 дней'}</div>
+        <canvas id="dashChart" height="200"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="card"><div class="card-title">${state.lang==='zh'?'待处理订单':'Заказы ожидают обработки'}</div>
+        ${d.pendingOrders.map(o=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="navigate('orders','all-orders')">
+            <div><div style="font-weight:500">${o.product}</div><div style="color:var(--text-secondary);font-size:12px">${o.id} · ${o.buyer}</div></div>
+            <div style="text-align:right"><div>${fmtRub(o.amount)}</div><div style="color:var(--text-secondary);font-size:12px">${o.status}</div></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card"><div class="card-title">${state.lang==='zh'?'系统通知':'Уведомления'}</div>
+        ${d.notifications.map(n=>`
+          <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span>${n.icon}</span>
+            <div><div>${n.text}</div><div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${n.time}</div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{
+    const ctx=document.getElementById('dashChart');
+    if(!ctx) return;
+    if(dashboardChart) dashboardChart.destroy();
+    dashboardChart=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:d.trendDates,
+        datasets:[{
+          label:state.lang==='zh'?'销售额(₽)':'Продажи (₽)',
+          data:d.trend,
+          borderColor:'#005BFF',
+          backgroundColor:'rgba(0,91,255,.08)',
+          fill:true,
+          tension:.35,
+          pointBackgroundColor:'#005BFF',
+          pointRadius:4
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'₽'+fmt(v) } } }
+      }
+    });
+  },50);
+}
+
+// ============ PRODUCT LIST ============
+function renderProductList(el) {
+  const p=MOCK.products;
+  el.innerHTML=`
+    <div class="section-header">
+      <h2>${state.lang==='zh'?'商品列表':'Список товаров'}</h2>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="navigate('products','add-product')">+ ${state.lang==='zh'?'添加商品':'Добавить'}</button>
+        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📄 已导出商品数据':'📄 Экспорт выполнен'}','success')">${state.lang==='zh'?'导出':'Экспорт'}</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="filter-bar">
+        <input class="search-input" placeholder="${state.lang==='zh'?'搜索商品名称/SKU...':'Поиск...'}" oninput="filterProducts(this.value)" style="flex:1;min-width:160px">
+        <select onchange="filterProductsByCat(this.value)"><option value="">${state.lang==='zh'?'全部分类':'Все категории'}</option>${MOCK.categories.map(c=>`<option>${c.name}</option>`).join('')}</select>
+        <select onchange="filterProductsByStatus(this.value)"><option value="">${state.lang==='zh'?'全部状态':'Все статусы'}</option><option>在售</option><option>审核中</option><option>已下架</option></select>
+        <button class="btn btn-outline btn-sm" onclick="showToast('${state.lang==='zh'?'✅ 批量操作已执行':'✅ Массовая операция выполнена'}','success')">${state.lang==='zh'?'批量操作':'Массово'}</button>
+      </div>
+      <div class="table-wrap">
+        <table id="productTable">
+          <thead><tr>
+            <th style="width:30px"><input type="checkbox" onchange="toggleAllProducts(this.checked)"></th>
+            <th>${state.lang==='zh'?'商品':'Товар'}</th>
+            <th onclick="sortProducts('sku')">SKU <span class="sort-icon">▼</span></th>
+            <th onclick="sortProducts('category')">${state.lang==='zh'?'类目':'Категория'} <span class="sort-icon">▼</span></th>
+            <th onclick="sortProducts('price')">${state.lang==='zh'?'价格':'Цена'} <span class="sort-icon">▼</span></th>
+            <th onclick="sortProducts('stock')">${state.lang==='zh'?'库存':'Остаток'} <span class="sort-icon">▼</span></th>
+            <th>${state.lang==='zh'?'状态':'Статус'}</th>
+            <th>${state.lang==='zh'?'操作':'Действия'}</th>
+          </tr></thead>
+          <tbody id="productTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  renderProductRows(p);
+}
+
+let productFilter={text:'',cat:'',status:''};
+function filterProducts(v){ productFilter.text=v; applyProductFilter(); }
+function filterProductsByCat(v){ productFilter.cat=v; applyProductFilter(); }
+function filterProductsByStatus(v){ productFilter.status=v; applyProductFilter(); }
+function applyProductFilter(){
+  let p=MOCK.products;
+  if(productFilter.text) p=p.filter(x=>x.name.includes(productFilter.text)||x.sku.includes(productFilter.text));
+  if(productFilter.cat) p=p.filter(x=>x.category.startsWith(productFilter.cat));
+  if(productFilter.status) p=p.filter(x=>x.status===productFilter.status);
+  renderProductRows(p);
+}
+function sortProducts(col){
+  const p=[...MOCK.products];
+  if(state.productSort.col===col) state.productSort.asc=!state.productSort.asc;
+  else { state.productSort.col=col; state.productSort.asc=true; }
+  p.sort((a,b)=>{
+    const va=col==='price'?a.price:col==='stock'?a.stock:a[col];
+    const vb=col==='price'?b.price:col==='stock'?b.stock:b[col];
+    return state.productSort.asc?(va>vb?1:-1):(va<vb?1:-1);
+  });
+  applyProductFilter();
+  renderProductRows(p);
+}
+function renderProductRows(data){
+  const el=document.getElementById('productTbody');
+  if(!el) return;
+  el.innerHTML=data.map(p=>`
+    <tr>
+      <td><input type="checkbox"></td>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="thumb">${p.image}</div>
+        <div><div style="font-weight:500">${p.name}</div><div style="color:var(--text-secondary);font-size:11px">${p.nameRu}</div></div>
+      </div></td>
+      <td>${p.sku}</td>
+      <td>${p.category}</td>
+      <td>${fmtRub(p.price)}<br><span style="color:var(--text-secondary);font-size:11px"><s>${fmtRub(p.oldPrice)}</s></span></td>
+      <td><span style="${p.stock<10?'color:var(--danger);font-weight:600':''}">${p.stock}</span></td>
+      <td>${statusBadge(p.status)}</td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="showToast('${state.lang==='zh'?'✏️ 编辑商品: '+p.name:'✏️ Редактировать: '+p.name}','')">${state.lang==='zh'?'编辑':'Ред.'}</button>
+          ${p.status==='在售'?`<button class="btn btn-danger btn-sm" onclick="showToast('${state.lang==='zh'?'⛔ 已下架: '+p.name:'⛔ Снято: '+p.name}','warning')">${state.lang==='zh'?'下架':'Снять'}</button>`:''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+function toggleAllProducts(v){ document.querySelectorAll('#productTbody input[type=checkbox]').forEach(c=>c.checked=v); }
+
+// ============ ADD PRODUCT ============
+function renderAddProduct(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'添加商品':'Добавить товар'}</h2></div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'商品标题（中文）':'Название (кит.)'} <span style="color:var(--danger)">*</span></label><input class="form-control" placeholder="${state.lang==='zh'?'请输入中文标题':'Введите название на китайском'}"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'商品标题（俄语）':'Название (рус.)'} <span style="color:var(--danger)">*</span></label><input class="form-control" placeholder="${state.lang==='zh'?'Введите название на русском':'Введите название на русском'}"></div>
+      </div>
+      <div class="form-group"><label>${state.lang==='zh'?'类目':'Категория'} <span style="color:var(--danger)">*</span></label>
+        <div class="cascade-row">
+          <select class="form-control" id="cat1" onchange="updateCats(2)"><option value="">${state.lang==='zh'?'选择一级类目':'Выберите категорию'}</option>${MOCK.categories.map(c=>`<option value="${c.name}">${c.name}</option>`).join('')}</select>
+          <select class="form-control" id="cat2" onchange="updateCats(3)"><option value="">${state.lang==='zh'?'选择二级类目':'Выберите подкатегорию'}</option></select>
+          <select class="form-control" id="cat3"><option value="">${state.lang==='zh'?'选择三级类目':'Выберите подкатегорию'}</option></select>
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label>${state.lang==='zh'?'品牌':'Бренд'}</label><input class="form-control" placeholder="LEHONG"></div>
+        <div class="form-group"><label>SKU <span style="color:var(--danger)">*</span></label><input class="form-control" placeholder="ACC-XXX-001"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'发货模式':'Метод доставки'}</label>
+          <select class="form-control"><option>FBO</option><option>FBS</option><option>rFBS</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'售价 (₽)':'Цена (₽)'} <span style="color:var(--danger)">*</span></label><input class="form-control" type="number" placeholder="1990"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'原价 (₽)':'Старая цена (₽)'}</label><input class="form-control" type="number" placeholder="2590"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'库存数量':'Количество'}</label><input class="form-control" type="number" value="100"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'重量 (kg)':'Вес (кг)'}</label><input class="form-control" type="number" step="0.1" placeholder="0.5"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'尺寸 (cm)':'Размеры (см)'}</label>
+          <div style="display:flex;gap:8px"><input class="form-control" placeholder="${state.lang==='zh'?'长':'Длина'}"><input class="form-control" placeholder="${state.lang==='zh'?'宽':'Ширина'}"><input class="form-control" placeholder="${state.lang==='zh'?'高':'Высота'}"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>${state.lang==='zh'?'商品描述':'Описание'}</label><textarea class="form-control" rows="4" placeholder="${state.lang==='zh'?'输入商品描述...':'Введите описание товара...'}"></textarea></div>
+      <div class="form-group"><label>${state.lang==='zh'?'商品图片':'Изображения'}</label>
+        <div class="upload-zone" onclick="showToast('${state.lang==='zh'?'📸 图片上传功能（模拟）':'📸 Загрузка изображений (симуляция)}','success')">
+          <div class="icon">📸</div>
+          <p>${state.lang==='zh'?'点击或拖拽上传图片（最多9张，支持JPG/PNG）':'Нажмите или перетащите файлы (до 9 шт, JPG/PNG)'}</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'预计审核时长':'Время проверки'}</label><div style="font-size:13px;color:var(--text-secondary);padding:8px 0">${state.lang==='zh'?'通常 1-3 个工作日':'Обычно 1-3 рабочих дня'}</div></div>
+      </div>
+      <div style="display:flex;gap:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'💾 已保存草稿':'💾 Черновик сохранен'}','success')">${state.lang==='zh'?'保存草稿':'Черновик'}</button>
+        <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'✅ 已提交审核':'✅ Отправлено на проверку'}','success')">${state.lang==='zh'?'提交审核':'Отправить'}</button>
+      </div>
+    </div>
+  `;
+}
+function updateCats(level){
+  const v1=document.getElementById('cat1').value;
+  const c1=MOCK.categories.find(c=>c.name===v1);
+  if(level===2){
+    const el2=document.getElementById('cat2');
+    el2.innerHTML='<option value="">'+ (state.lang==='zh'?'选择二级类目':'Выберите') +'</option>';
+    if(c1) c1.subs.forEach(s=>{ el2.innerHTML+=`<option value="${s.name}">${s.name}</option>`; });
+    document.getElementById('cat3').innerHTML='<option value="">'+ (state.lang==='zh'?'选择三级类目':'Выберите') +'</option>';
+  } else if(level===3){
+    const v2=document.getElementById('cat2').value;
+    const c2=c1&&c1.subs.find(s=>s.name===v2);
+    const el3=document.getElementById('cat3');
+    el3.innerHTML='<option value="">'+ (state.lang==='zh'?'选择三级类目':'Выберите') +'</option>';
+    if(c2) c2.subs.forEach(s=>{ el3.innerHTML+=`<option value="${s}">${s}</option>`; });
+  }
+}
+
+// ============ BATCH UPLOAD ============
+function renderBatchUpload(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'批量上传':'Массовая загрузка'}</h2></div>
+    <div class="card">
+      <div style="margin-bottom:16px">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">${state.lang==='zh'?'下载模板填写商品信息后，上传Excel文件批量导入商品。':'Скачайте шаблон, заполните данные и загрузите Excel файл.'}</p>
+        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📥 模板已下载':'📥 Шаблон скачан'}','success')">📥 ${state.lang==='zh'?'下载模板':'Шаблон'}</button>
+      </div>
+      <div class="upload-zone" onclick="showToast('${state.lang==='zh'?'📂 文件已上传，正在解析...':'📂 Файл загружен, анализ...'}','success')">
+        <div class="icon">📂</div>
+        <p>${state.lang==='zh'?'点击上传Excel文件（支持 .xlsx/.xls）':'Нажмите для загрузки Excel (.xlsx/.xls)'}</p>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--primary-light);border-radius:6px;font-size:13px;color:var(--text-secondary)">
+        ${state.lang==='zh'?'💡 提示：单次最多上传100个商品，文件大小不超过5MB':'💡 Максимум 100 товаров за раз, размер файла до 5MB'}
+      </div>
+    </div>
+  `;
+}
+
+// ============ CATEGORY MANAGEMENT ============
+function renderCategoryMgmt(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'类目管理':'Управление категориями'}</h2></div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'Ozon 类目树':'Дерево категорий Ozon'}</div>
+      ${MOCK.categories.map(c=>`
+        <div style="margin-bottom:8px">
+          <div style="font-weight:600;font-size:14px;padding:8px 0;color:var(--primary)">📁 ${c.name}</div>
+          ${c.subs.map(s=>`
+            <div style="padding-left:24px;margin:4px 0">
+              <div style="font-weight:500;font-size:13px">📂 ${s.name}</div>
+              <div style="padding-left:24px;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+                ${s.subs.map(ss=>`<span style="font-size:12px;padding:2px 10px;background:var(--bg);border-radius:12px;cursor:pointer" onclick="showToast('${state.lang==='zh'?'已选择: '+ss:'Выбрано: '+ss}','')">${ss}</span>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ============ ORDERS ============
+function renderOrders(el,filterStatus) {
+  let orders=MOCK.orders;
+  if(filterStatus) orders=orders.filter(o=>o.status===filterStatus);
+  el.innerHTML=`
+    <div class="section-header"><h2>${filterStatus||(state.lang==='zh'?'全部订单':'Все заказы')}</h2></div>
+    <div class="card">
+      <div class="filter-bar">
+        <input type="date" class="form-control" style="width:auto">
+        <span style="color:var(--text-secondary)">~</span>
+        <input type="date" class="form-control" style="width:auto">
+        <select class="form-control" style="width:auto" onchange="renderOrdersFilter(this.value)">
+          <option value="">${state.lang==='zh'?'全部状态':'Все статусы'}</option>
+          <option value="待确认">${state.lang==='zh'?'待确认':'Ожидание'}</option>
+          <option value="备货中">${state.lang==='zh'?'备货中':'Комплектация'}</option>
+          <option value="已发货">${state.lang==='zh'?'已发货':'Отправлено'}</option>
+          <option value="已签收">${state.lang==='zh'?'已签收':'Получено'}</option>
+          <option value="已完成">${state.lang==='zh'?'已完成':'Завершено'}</option>
+          <option value="退货/退款">${state.lang==='zh'?'退货/退款':'Возврат'}</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="showToast('${state.lang==='zh'?'📄 已导出订单数据':'📄 Экспорт заказов'}','success')">${state.lang==='zh'?'导出':'Экспорт'}</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>${state.lang==='zh'?'订单号':'№ заказа'}</th>
+            <th>${state.lang==='zh'?'商品':'Товар'}</th>
+            <th>${state.lang==='zh'?'买家':'Покупатель'}</th>
+            <th>${state.lang==='zh'?'金额':'Сумма'}</th>
+            <th>${state.lang==='zh'?'下单时间':'Время'}</th>
+            <th>${state.lang==='zh'?'状态':'Статус'}</th>
+            <th>${state.lang==='zh'?'物流':'Логистика'}</th>
+            <th>${state.lang==='zh'?'操作':'Действия'}</th>
+          </tr></thead>
+          <tbody>
+            ${orders.map(o=>`
+              <tr>
+                <td style="font-weight:500">${o.id}</td>
+                <td>${o.product}<br><span style="color:var(--text-secondary);font-size:11px">x${o.qty}</span></td>
+                <td>${o.buyer}</td>
+                <td>${fmtRub(o.amount)}</td>
+                <td style="font-size:12px">${o.time}</td>
+                <td>${orderStatusBadge(o.status)}</td>
+                <td>${o.logistics}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="showOrderDetail('${o.id}')">${state.lang==='zh'?'详情':'Детали'}</button></td>
+              </tr>
+            `).join('')}
+            ${orders.length===0?`<tr><td colspan="8" class="text-center" style="color:var(--text-secondary);padding:40px">${state.lang==='zh'?'暂无订单':'Нет заказов'}</td></tr>`:''}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function renderOrdersFilter(v){ renderOrders(document.getElementById('content'),v||undefined); }
+
+function showOrderDetail(id) {
+  const o=MOCK.orders.find(x=>x.id===id);
+  if(!o) return;
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML=`
+    <div class="modal-box">
+      <h3>${state.lang==='zh'?'订单详情':'Детали заказа'} ${o.id}</h3>
+      <div class="detail-grid">
+        <span class="dl">${state.lang==='zh'?'商品':'Товар'}</span><span class="dd">${o.product}</span>
+        <span class="dl">SKU</span><span class="dd">${o.sku}</span>
+        <span class="dl">${state.lang==='zh'?'买家':'Покупатель'}</span><span class="dd">${o.buyer}</span>
+        <span class="dl">${state.lang==='zh'?'地址':'Адрес'}</span><span class="dd">${o.buyerAddr}</span>
+        <span class="dl">${state.lang==='zh'?'金额':'Сумма'}</span><span class="dd">${fmtRub(o.amount)}</span>
+        <span class="dl">${state.lang==='zh'?'状态':'Статус'}</span><span class="dd">${orderStatusBadge(o.status)}</span>
+        <span class="dl">${state.lang==='zh'?'物流':'Логистика'}</span><span class="dd">${o.logistics} ${o.tracking?'· '+o.tracking:''}</span>
+      </div>
+      <div style="margin-top:12px">
+        <div style="font-weight:500;font-size:13px;margin-bottom:8px">${state.lang==='zh'?'物流轨迹':'Трекинг'}</div>
+        <div class="timeline">
+          ${o.events.map(e=>`
+            <div class="timeline-item">${e.text}<div class="time">${e.time}</div></div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        ${o.status==='待确认'?`<button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove();showToast('${state.lang==='zh'?'✅ 订单已确认':'✅ Заказ подтвержден'}','success')">${state.lang==='zh'?'确认订单':'Подтвердить'}</button>`:''}
+        <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">${state.lang==='zh'?'关闭':'Закрыть'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// ============ MARKETING ============
+function renderPromotions(el) {
+  const p=MOCK.marketing.promotions;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'促销活动':'Акции'}</h2>
+      <button class="btn btn-primary" onclick="showCreatePromo()">+ ${state.lang==='zh'?'创建活动':'Создать'}</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'活动名称':'Название'}</th><th>${state.lang==='zh'?'类型':'Тип'}</th><th>${state.lang==='zh'?'折扣':'Скидка'}</th><th>${state.lang==='zh'?'预算':'Бюджет'}</th><th>${state.lang==='zh'?'开始时间':'Начало'}</th><th>${state.lang==='zh'?'结束时间':'Окончание'}</th><th>${state.lang==='zh'?'状态':'Статус'}</th></tr></thead>
+          <tbody>${p.map(x=>`<tr><td>${x.name}</td><td>${x.type}</td><td>${x.discount}</td><td>${fmtRub(x.budget)}</td><td>${x.start}</td><td>${x.end}</td><td>${statusBadge(x.status)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function showCreatePromo() {
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML=`
+    <div class="modal-box">
+      <h3>${state.lang==='zh'?'创建促销活动':'Создать акцию'}</h3>
+      <div class="form-group"><label>${state.lang==='zh'?'活动名称':'Название'}</label><input class="form-control" placeholder="${state.lang==='zh'?'如：夏季大促':'Летняя распродажа'}"></div>
+      <div class="form-row"><div class="form-group"><label>${state.lang==='zh'?'活动类型':'Тип'}</label><select class="form-control"><option>${state.lang==='zh'?'闪购':'Флеш'}</option><option>${state.lang==='zh'?'满减':'Скидка от суммы'}</option><option>${state.lang==='zh'?'折扣':'Скидка'}</option></select></div>
+      <div class="form-group"><label>${state.lang==='zh'?'折扣力度':'Скидка'}</label><input class="form-control" placeholder="${state.lang==='zh'?'如：7折 / 满3000减500':'70% / 500'}" value="8${state.lang==='zh'?'折':'0%'}"></div></div>
+      <div class="form-row"><div class="form-group"><label>${state.lang==='zh'?'开始时间':'Начало'}</label><input class="form-control" type="date"></div>
+      <div class="form-group"><label>${state.lang==='zh'?'结束时间':'Окончание'}</label><input class="form-control" type="date"></div></div>
+      <div class="form-group"><label>${state.lang==='zh'?'预算上限 (₽)':'Бюджет (₽)'}</label><input class="form-control" type="number" placeholder="50000"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove();showToast('${state.lang==='zh'?'🎉 活动创建成功':'🎉 Акция создана'}','success')">${state.lang==='zh'?'创建':'Создать'}</button>
+        <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">${state.lang==='zh'?'取消':'Отмена'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function renderSearchAds(el) {
+  const a=MOCK.marketing.ads;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'搜索广告':'Поисковая реклама'}</h2>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'➕ 新建广告组已创建':'➕ Новая группа объявлений'}','success')">+ ${state.lang==='zh'?'新建广告':'Новое'}</button>
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'广告效果概览':'Обзор эффективности'}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'关键词':'Ключевое слово'}</th><th>${state.lang==='zh'?'出价 (₽)':'Ставка'}</th><th>${state.lang==='zh'?'曝光':'Показы'}</th><th>${state.lang==='zh'?'点击':'Клики'}</th><th>${state.lang==='zh'?'花费 (₽)':'Расход'}</th><th>${state.lang==='zh'?'订单':'Заказы'}</th><th>${state.lang==='zh'?'收入':'Доход'}</th><th>ROI</th></tr></thead>
+          <tbody>${a.map(x=>{
+            const roi=Math.round((x.revenue-x.cost)/x.cost*100);
+            return `<tr><td>${x.keyword}</td><td>${x.bid}</td><td>${fmt(x.impressions)}</td><td>${fmt(x.clicks)}</td><td>${fmtRub(x.cost)}</td><td>${x.orders}</td><td>${fmtRub(x.revenue)}</td><td><span class="badge badge-success">+${roi}%</span></td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'投放设置':'Настройки кампании'}</div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'日预算':'Дневной бюджет'}</label><input class="form-control" type="number" value="5000"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'出价策略':'Стратегия ставок'}</label><select class="form-control"><option>${state.lang==='zh'?'手动出价':'Ручная'}</option><option>${state.lang==='zh'?'自动出价':'Авто'}</option></select></div>
+      </div>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'💾 广告设置已保存':'💾 Настройки сохранены'}','success')">${state.lang==='zh'?'保存设置':'Сохранить'}</button>
+    </div>
+  `;
+}
+
+function renderCoupons(el) {
+  const c=MOCK.marketing.coupons;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'优惠券管理':'Управление купонами'}</h2>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'🎫 已创建新优惠券':'🎫 Новый купон создан'}','success')">+ ${state.lang==='zh'?'新建优惠券':'Новый купон'}</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'优惠码':'Код'}</th><th>${state.lang==='zh'?'类型':'Тип'}</th><th>${state.lang==='zh'?'优惠内容':'Значение'}</th><th>${state.lang==='zh'?'使用情况':'Использовано'}</th><th>${state.lang==='zh'?'有效期':'Срок'}</th><th>${state.lang==='zh'?'状态':'Статус'}</th></tr></thead>
+          <tbody>${c.map(x=>`<tr><td><code style="background:var(--bg);padding:2px 6px;border-radius:4px">${x.code}</code></td><td>${x.type}</td><td>${x.value}</td><td>${x.usage}</td><td>${x.expiry}</td><td>${statusBadge(x.status)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderOzonPremium(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>Ozon Premium</h2></div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'Premium 商品数':'Premium товары'}</div><div class="value">45</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'Premium 订单占比':'Доля Premium'}</div><div class="value">28%</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'额外曝光提升':'Доп. показы'}</div><div class="value">+35%</div></div>
+    </div>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:48px;margin-bottom:12px">⭐</div>
+      <h3 style="margin-bottom:8px">Ozon Premium</h3>
+      <p style="color:var(--text-secondary);font-size:13px;max-width:400px;margin:0 auto">${state.lang==='zh'?'加入 Ozon Premium 计划，获得额外流量曝光和买家信任。':'Присоединяйтесь к Ozon Premium для дополнительного трафика и доверия покупателей.'}</p>
+      <button class="btn btn-primary mt-16" onclick="showToast('${state.lang==='zh'?'✅ 已申请加入 Premium 计划':'✅ Заявка на Premium подана'}','success')">${state.lang==='zh'?'立即加入':'Присоединиться'}</button>
+    </div>
+  `;
+}
+
+// ============ ANALYTICS ============
+let salesChart=null, topChart=null, catChart=null;
+function renderSalesOverview(el) {
+  const a=MOCK.analytics;
+  const k=a.kpi;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'销售概览':'Обзор продаж'}</h2>
+      <select class="form-control" style="width:auto" onchange="refreshSalesChart(this.value)">
+        <option value="7">${state.lang==='zh'?'近7天':'7 дней'}</option>
+        <option value="30">${state.lang==='zh'?'近30天':'30 дней'}</option>
+        <option value="month">${state.lang==='zh'?'本月':'Этот месяц'}</option>
+      </select>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'销售额':'Продажи'}</div><div class="value">${fmtRub(k.sales)}</div><div class="sub">${fmtCny(k.sales)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'订单量':'Заказы'}</div><div class="value">${k.orders}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'客单价':'Ср. чек'}</div><div class="value">${fmtRub(k.avgOrder)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'转化率':'Конверсия'}</div><div class="value">${k.convRate}%</div></div>
+    </div>
+    <div class="chart-row">
+      <div class="card"><div class="card-title">${state.lang==='zh'?'销售趋势':'Тренд продаж'}</div><canvas id="salesChart" height="180"></canvas></div>
+      <div class="card"><div class="card-title">${state.lang==='zh'?'商品排行TOP5':'TOP 5 товаров'}</div><canvas id="topChart" height="180"></canvas></div>
+    </div>
+    <div class="chart-row">
+      <div class="card"><div class="card-title">${state.lang==='zh'?'类目占比':'Доля категорий'}</div><canvas id="catChart" height="180"></canvas></div>
+      <div class="card"><div class="card-title">${state.lang==='zh'?'流量来源':'Источники трафика'}</div><canvas id="trafficChart" height="180"></canvas></div>
+    </div>
+  `;
+  setTimeout(()=>{
+    if(salesChart)salesChart.destroy();
+    if(topChart)topChart.destroy();
+    if(catChart)catChart.destroy();
+    const c1=document.getElementById('salesChart');
+    const c2=document.getElementById('topChart');
+    const c3=document.getElementById('catChart');
+    const c4=document.getElementById('trafficChart');
+    if(c1) salesChart=new Chart(c1,{type:'line',data:{labels:a.dates,datasets:[{label:state.lang==='zh'?'销售额':'Продажи',data:a.sales,borderColor:'#005BFF',backgroundColor:'rgba(0,91,255,.08)',fill:true,tension:.35}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₽'+fmt(v)}}}}});
+    if(c2) topChart=new Chart(c2,{type:'bar',data:{labels:a.topProducts.map(x=>x.name),datasets:[{label:state.lang==='zh'?'销售额':'Продажи',data:a.topProducts.map(x=>x.sales),backgroundColor:'#005BFF'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₽'+fmt(v)}}},indexAxis:'y'}});
+    if(c3) catChart=new Chart(c3,{type:'doughnut',data:{labels:Object.keys(a.categoryShare),datasets:[{data:Object.values(a.categoryShare),backgroundColor:['#005BFF','#00B86B','#FF9F43','#54A0FF','#FF5B5B']}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
+    if(c4) new Chart(c4,{type:'doughnut',data:{labels:Object.keys(a.trafficSources),datasets:[{data:Object.values(a.trafficSources),backgroundColor:['#005BFF','#54A0FF','#FF9F43','#00B86B']}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
+  },50);
+}
+function refreshSalesChart(v){ showToast(state.lang==='zh'?'📊 已切换数据周期':'📊 Период изменен',''); }
+
+function renderTraffic(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'流量分析':'Анализ трафика'}</h2></div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'总访问量':'Всего визитов'}</div><div class="value">12,458</div><div class="sub">${state.lang==='zh'?'环比 +12%':'+12%'}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'独立访客':'Уник. посетители'}</div><div class="value">8,234</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'页面浏览量':'Просмотры'}</div><div class="value">45,672</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'平均停留时长':'Ср. время'}</div><div class="value">${state.lang==='zh'?'2分35秒':'2 мин 35 сек'}</div></div>
+    </div>
+    <div class="card"><div class="card-title">${state.lang==='zh'?'流量来源分布':'Источники трафика'}</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:12px">
+        ${Object.entries(MOCK.analytics.trafficSources).map(([k,v])=>{
+          const colors={'搜索流量':'#005BFF','推荐流量':'#54A0FF','广告流量':'#FF9F43','外部流量':'#00B86B'};
+          return `<div style="flex:1;min-width:120px;text-align:center;padding:16px;background:var(--bg);border-radius:8px">
+            <div style="font-size:28px;font-weight:700;color:${colors[k]||'#666'}">${v}%</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">${k}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderFunnel(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'转化漏斗':'Воронка продаж'}</h2></div>
+    <div class="card">
+      ${[
+        {stage:state.lang==='zh'?'商品浏览':'Просмотры',count:15678,pct:100},
+        {stage:state.lang==='zh'?'加入购物车':'В корзину',count:3241,pct:20.7},
+        {stage:state.lang==='zh'?'提交订单':'Оформлено',count:892,pct:5.7},
+        {stage:state.lang==='zh'?'支付成功':'Оплачено',count:578,pct:3.7},
+        {stage:state.lang==='zh'?'订单完成':'Завершено',count:512,pct:3.3}
+      ].map((s,i)=>{
+        const w=50+(s.pct/100)*50;
+        return `<div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>${s.stage}</span><span>${fmt(s.count)} (${s.pct}%)</span>
+          </div>
+          <div style="height:32px;background:var(--bg);border-radius:6px;overflow:hidden;position:relative">
+            <div style="height:100%;width:${w}%;background:var(--primary);border-radius:6px;opacity:${1-i*0.15};transition:width .5s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderCompetitors(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'竞品对比':'Сравнение конкурентов'}</h2></div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'维度':'Параметр'}</th><th>${state.lang==='zh'?'您的店铺':'Ваш магазин'}</th><th>${state.lang==='zh'?'行业均值':'Среднее'}</th><th>${state.lang==='zh'?'TOP 10%':'ТОП 10%'}</th></tr></thead>
+          <tbody>
+            <tr><td>${state.lang==='zh'?'商品评分':'Рейтинг'}</td><td><span class="stars">★★★★★</span> 4.8</td><td><span class="stars">★★★★</span> 4.2</td><td><span class="stars">★★★★★</span> 4.7</td></tr>
+            <tr><td>${state.lang==='zh'?'发货时效':'Срок доставки'}</td><td><span class="badge badge-success">${state.lang==='zh'?'2-3天':'2-3 дня'}</span></td><td>3-5 ${state.lang==='zh'?'天':'дней'}</td><td>1-2 ${state.lang==='zh'?'天':'дня'}</td></tr>
+            <tr><td>${state.lang==='zh'?'回复率':'Ответов'}</td><td>98%</td><td>85%</td><td>95%</td></tr>
+            <tr><td>${state.lang==='zh'?'退货率':'Возвратов'}</td><td><span class="badge badge-success">2.1%</span></td><td>4.5%</td><td>1.8%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============ LOGISTICS ============
+function renderFBO(el) {
+  const f=MOCK.logistics.fbo;
+  el.innerHTML=`
+    <div class="section-header"><h2>FBO ${state.lang==='zh'?'仓库':'Склад'}</h2></div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'FBO仓库存':'Остаток FBO'}</div><div class="value">${f.reduce((s,x)=>s+x.stock,0)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'需补货商品':'Требуют пополнения'}</div><div class="value" style="color:var(--danger)">${f.filter(x=>x.stock<=x.alert).length}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'覆盖仓库':'Склады'}</div><div class="value">2</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'库存明细':'Детали остатков'}</div>
+      ${f.map(x=>`
+        <div class="logi-card">
+          <div class="info"><div class="title">${x.name} <span style="color:var(--text-secondary);font-weight:400">${x.sku}</span></div><div class="desc">${x.warehouse}</div></div>
+          <div style="text-align:right">
+            <div style="font-weight:600;font-size:16px;${x.stock<=x.alert?'color:var(--danger)':''}">${x.stock}</div>
+            <div style="font-size:11px;color:var(--text-secondary)">${state.lang==='zh'?'预警线':'Порог'}: ${x.alert}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'补货建议':'Рекомендации пополнения'}</div>
+      <div style="font-size:13px;color:var(--text-secondary)">${state.lang==='zh'?'以下商品库存低于预警线，建议及时补货：':'Товары ниже порога, рекомендуется пополнить:'}</div>
+      ${f.filter(x=>x.stock<=x.alert).map(x=>`
+        <div class="logi-card" style="border-left:3px solid var(--danger)">
+          <div class="info"><div class="title">${x.name}</div><div class="desc">${state.lang==='zh'?'当前库存':'Остаток'}: ${x.stock} / ${state.lang==='zh'?'预警线':'Порог'}: ${x.alert}</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showToast('${state.lang==='zh'?'📦 已生成补货单: '+x.name:'📦 Создан заказ: '+x.name}','success')">${state.lang==='zh'?'去补货':'Пополнить'}</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderFBS(el) {
+  const t=MOCK.logistics.fbsTemplates;
+  el.innerHTML=`
+    <div class="section-header"><h2>FBS ${state.lang==='zh'?'发货':'Доставка'}</h2></div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'待发货订单':'Ожидают отправки'}</div>
+      <div style="text-align:center;padding:30px;color:var(--text-secondary)">
+        <div style="font-size:36px;margin-bottom:8px">📦</div>
+        <div>${state.lang==='zh'?'暂无待发货订单':'Нет заказов на отправку'}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'发货模板':'Шаблоны доставки'}</div>
+      ${t.map(x=>`
+        <div class="logi-card">
+          <div class="info"><div class="title">${x.name}</div><div class="desc">${x.carrier} · ${state.lang==='zh'?'费用':'Стоимость'}: ${fmtRub(x.cost)} · ${state.lang==='zh'?'时效':'Срок'}: ${x.days} ${state.lang==='zh'?'天':'дн'} · ${x.regions}</div></div>
+          <button class="btn btn-outline btn-sm" onclick="showToast('${state.lang==='zh'?'✏️ 编辑配送模板: '+x.name:'✏️ Редактировать: '+x.name}','')">${state.lang==='zh'?'编辑':'Ред.'}</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderLogiTemplates(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'物流模板':'Шаблоны логистики'}</h2>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'➕ 已新建物流模板':'➕ Новый шаблон'}','success')">+ ${state.lang==='zh'?'新建模板':'Новый'}</button>
+    </div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'模板名称':'Название'}</label><input class="form-control" value="${state.lang==='zh'?'标准配送':'Стандартная доставка'}"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'承运商':'Перевозчик'}</label><select class="form-control"><option>${state.lang==='zh'?'俄罗斯邮政':'Почта России'}</option><option>Boxberry</option><option>СДЭК</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'基础运费 (₽)':'Базовая стоимость'}</label><input class="form-control" type="number" value="350"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'免运费门槛 (₽)':'Бесплатно от'}</label><input class="form-control" type="number" value="3000"></div>
+      </div>
+      <div class="form-group"><label>${state.lang==='zh'?'覆盖区域':'Регионы'}</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${['莫斯科','圣彼得堡','全俄'].map(r=>`<label style="font-size:13px;display:flex;align-items:center;gap:4px;padding:6px 12px;background:var(--bg);border-radius:6px;cursor:pointer"><input type="checkbox" ${r==='全俄'?'checked':''}> ${r}</label>`).join('')}
+        </div>
+      </div>
+      <button class="btn btn-primary mt-16" onclick="showToast('${state.lang==='zh'?'💾 物流模板已保存':'💾 Шаблон сохранен'}','success')">${state.lang==='zh'?'保存':'Сохранить'}</button>
+    </div>
+  `;
+}
+
+function renderReturnAddr(el) {
+  const r=MOCK.logistics.returns;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'退货地址':'Адрес возврата'}</h2></div>
+    <div class="card">
+      <div class="detail-grid">
+        <span class="dl">${state.lang==='zh'?'退货地址':'Адрес'}</span><span class="dd">${r.address}</span>
+        <span class="dl">${state.lang==='zh'?'联系人':'Контакты'}</span><span class="dd">${r.contact}</span>
+        <span class="dl">${state.lang==='zh'?'电话':'Телефон'}</span><span class="dd">${r.phone}</span>
+      </div>
+      <button class="btn btn-outline mt-16" onclick="showToast('${state.lang==='zh'?'✏️ 退货地址已编辑':'✏️ Адрес изменен'}','success')">${state.lang==='zh'?'编辑地址':'Редактировать'}</button>
+    </div>
+  `;
+}
+
+// ============ FINANCE ============
+function renderIncome(el) {
+  const f=MOCK.finance;
+  const cp=f.currentPeriod;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'收入明细':'Доходы'}</h2>
+      <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📄 已导出财务数据':'📄 Экспорт финансов'}','success')">${state.lang==='zh'?'导出':'Экспорт'}</button>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'本期销售额':'Продажи'}</div><div class="value">${fmtRub(cp.sales)}</div><div class="sub">${fmtCny(cp.sales)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'佣金':'Комиссия'}</div><div class="value">${fmtRub(cp.commission)}</div><div class="sub">${fmtCny(cp.commission)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'Ozon服务费':'Услуги'}</div><div class="value">${fmtRub(cp.service)}</div><div class="sub">${fmtCny(cp.service)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'净收入':'Чистый доход'}</div><div class="value" style="color:var(--success)">${fmtRub(cp.net)}</div><div class="sub">${fmtCny(cp.net)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'近期收入记录':'Последние поступления'}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'日期':'Дата'}</th><th>${state.lang==='zh'?'订单号':'Заказ'}</th><th>${state.lang==='zh'?'订单金额':'Сумма'}</th><th>${state.lang==='zh'?'佣金':'Комиссия'}</th><th>${state.lang==='zh'?'服务费':'Услуги'}</th><th>${state.lang==='zh'?'净收入':'Чистый'}</th></tr></thead>
+          <tbody>${f.recentIncome.map(x=>`<tr><td>${x.date}</td><td>${x.orderId}</td><td>${fmtRub(x.amount)}</td><td>${fmtRub(x.commission)}</td><td>${fmtRub(x.service)}</td><td style="color:var(--success);font-weight:600">${fmtRub(x.net)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderCommission(el) {
+  const f=MOCK.finance;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'佣金明细':'Комиссии'}</h2></div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'各类目佣金率参考':'Ставки комиссии по категориям'}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'类目':'Категория'}</th><th>${state.lang==='zh'?'佣金率':'Ставка'}</th><th>${state.lang==='zh'?'说明':'Примечание'}</th></tr></thead>
+          <tbody>${f.commissionRates.map(x=>`<tr><td>${x.category}</td><td><span class="badge badge-info">${x.rate}</span></td><td style="color:var(--text-secondary);font-size:12px">${state.lang==='zh'?'按售价计算':'От цены продажи'}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderWithdrawal(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'提现记录':'Вывод средств'}</h2>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'💰 已提交提现申请':'💰 Заявка на вывод подана'}','success')">${state.lang==='zh'?'申请提现':'Вывести'}</button>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'可提现余额':'Доступно'}</div><div class="value" style="color:var(--success)">${fmtRub(593400)}</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'提现处理中':'В обработке'}</div><div class="value">₽0</div></div>
+      <div class="kpi-card"><div class="label">${state.lang==='zh'?'已提现总计':'Выведено всего'}</div><div class="value">${fmtRub(2500000)}</div></div>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <div class="icon">🏦</div>
+        <p>${state.lang==='zh'?'暂无提现记录':'Нет операций вывода'}</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderInvoices(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'发票管理':'Счета'}</h2>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'📄 发票申请已提交':'📄 Запрос счета отправлен'}','success')">${state.lang==='zh'?'申请发票':'Запросить'}</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${state.lang==='zh'?'发票号':'№ счета'}</th><th>${state.lang==='zh'?'金额':'Сумма'}</th><th>${state.lang==='zh'?'类型':'Тип'}</th><th>${state.lang==='zh'?'日期':'Дата'}</th><th>${state.lang==='zh'?'状态':'Статус'}</th><th>${state.lang==='zh'?'操作':'Действия'}</th></tr></thead>
+          <tbody>
+            <tr><td>INV-2026-05-001</td><td>${fmtRub(158420)}</td><td>${state.lang==='zh'?'服务费':'Услуги'}</td><td>2026-05-26</td><td>${statusBadge('进行中')}</td><td><button class="btn btn-outline btn-sm" onclick="showToast('📄 ${state.lang==='zh'?'正在下载发票...':'Скачивание...'}','')">${state.lang==='zh'?'下载':'Скачать'}</button></td></tr>
+            <tr><td>INV-2026-05-002</td><td>${fmtRub(69800)}</td><td>${state.lang==='zh'?'佣金':'Комиссия'}</td><td>2026-05-25</td><td>${statusBadge('已完成')}</td><td><button class="btn btn-outline btn-sm" onclick="showToast('📄 ${state.lang==='zh'?'正在下载发票...':'Скачивание...'}','')">${state.lang==='zh'?'下载':'Скачать'}</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============ SETTINGS ============
+function renderShopInfo(el) {
+  const s=MOCK.settings;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'店铺信息':'Информация о магазине'}</h2></div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'店铺名称':'Название'}</label><input class="form-control" value="${s.shopName}"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'联系人':'Контакты'}</label><input class="form-control" value="${s.contact}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'电话':'Телефон'}</label><input class="form-control" value="${s.phone}"></div>
+        <div class="form-group"><label>Email</label><input class="form-control" value="${s.email}"></div>
+      </div>
+      <div class="form-group"><label>${state.lang==='zh'?'店铺简介':'Описание'}</label><textarea class="form-control" rows="3">${s.description}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'公司地址':'Адрес'}</label><input class="form-control" value="${s.address}"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'注册号':'Рег. номер'}</label><input class="form-control" value="${s.regNumber}" disabled style="background:var(--bg)"></div>
+      </div>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'💾 店铺信息已更新':'💾 Информация обновлена'}','success')">${state.lang==='zh'?'保存更改':'Сохранить'}</button>
+    </div>
+  `;
+}
+
+function renderBrand(el) {
+  const b=MOCK.settings.brand;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'品牌馆装修':'Оформление бренда'}</h2></div>
+    <div class="card">
+      <div class="card-title">${state.lang==='zh'?'品牌馆预览':'Предпросмотр'}</div>
+      <div style="background:${b.banner};border-radius:8px;padding:40px;text-align:center;color:#fff;margin-bottom:16px">
+        <div style="font-size:48px;margin-bottom:8px">${b.logo}</div>
+        <div style="font-size:24px;font-weight:700">${b.name}</div>
+        <div style="font-size:14px;opacity:.8;margin-top:4px">${b.slogan}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'品牌Logo':'Логотип'}</label><div style="font-size:36px">${b.logo}</div></div>
+        <div class="form-group"><label>${state.lang==='zh'?'品牌色':'Цвет бренда'}</label><input class="form-control" value="${b.banner}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'品牌名称':'Название'}</label><input class="form-control" value="${b.name}"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'品牌标语':'Слоган'}</label><input class="form-control" value="${b.slogan}"></div>
+      </div>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'🎨 品牌馆已更新':'🎨 Бренд обновлен'}','success')">${state.lang==='zh'?'保存':'Сохранить'}</button>
+    </div>
+  `;
+}
+
+function renderReviews(el) {
+  const r=MOCK.settings.reviews;
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'用户评价':'Отзывы'}</h2></div>
+    <div class="card">
+      ${r.map(x=>`
+        <div class="review-card">
+          <div class="review-header">
+            <div>
+              <span class="reviewer">${x.reviewer}</span>
+              <span class="stars">${'★'.repeat(x.rating)}${'☆'.repeat(5-x.rating)}</span>
+            </div>
+            <span class="review-date">${x.date}</span>
+          </div>
+          <div class="review-text">${x.text}</div>
+          <div class="review-product">📦 ${x.product}</div>
+        </div>
+      `).join('')}
+      <div class="text-center mt-16">
+        <button class="btn btn-outline" onclick="showToast('${state.lang==='zh'?'📋 已加载更多评价':'📋 Загружено еще','success')">${state.lang==='zh'?'加载更多':'Еще'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSecurity(el) {
+  el.innerHTML=`
+    <div class="section-header"><h2>${state.lang==='zh'?'账号安全':'Безопасность'}</h2></div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'登录账号':'Логин'}</label><input class="form-control" value="lehong_trade" disabled style="background:var(--bg)"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'上次登录':'Последний вход'}</label><input class="form-control" value="2026-05-26 08:30 (IP: 213.87.145.22)" disabled style="background:var(--bg)"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>${state.lang==='zh'?'新密码':'Новый пароль'}</label><input class="form-control" type="password"></div>
+        <div class="form-group"><label>${state.lang==='zh'?'确认密码':'Подтвердите'}</label><input class="form-control" type="password"></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <input type="checkbox" checked> ${state.lang==='zh'?'启用双重验证 (2FA)':'Включить 2FA'}
+        </label>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <input type="checkbox" checked> ${state.lang==='zh'?'登录异常通知':'Уведомлять о подозрительном входе'}
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="showToast('${state.lang==='zh'?'🔒 安全设置已更新':'🔒 Настройки безопасности обновлены'}','success')">${state.lang==='zh'?'更新设置':'Обновить'}</button>
+    </div>
+  `;
+}
+
+// ============ INIT ============
+function init() {
+  renderNav();
+  navigate('dashboard',null);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
