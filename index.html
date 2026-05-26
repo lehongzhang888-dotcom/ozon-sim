@@ -4,8 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ozon 卖家模拟系统</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/chart.js@4.4.7/dist/chart.umd.min.js'">
 </script>
+<script>
+// Fallback: if both CDNs fail, define a stub so the page doesn't crash
+window.addEventListener('DOMContentLoaded', function() {
+  if (typeof Chart === 'undefined') {
+    window.Chart = function(){ return { destroy:function(){}, update:function(){}, data:{}, resize:function(){}, clear:function(){}, draw:function(){} } };
+    console.warn('⚠️ Chart.js 加载失败，图表将以纯数据展示');
+  }
+});
+</script>
+<style>
+/* Chart fallback area - shown when charts unavailable */
+.chart-fallback { display:none; }
+.no-chart .chart-fallback { display:block; }
+.no-chart canvas { display:none; }
+</style>
 <style>
 :root {
   --primary: #005BFF;
