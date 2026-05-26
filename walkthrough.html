@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ozon 跨境电商 · 全流程演练方案</title>
+<style>
+:root {
+  --primary: #005BFF;
+  --primary-dark: #0040CC;
+  --primary-light: #E8F0FF;
+  --bg: #F7F8FA;
+  --card: #FFFFFF;
+  --border: #E4E8EE;
+  --text: #1A1F2E;
+  --text-secondary: #6B7280;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+a { color:var(--primary); text-decoration:none; }
+
+/* Hero */
+.hero { background:linear-gradient(135deg,#0F1A2E 0%,#1A2F50 50%,#005BFF 100%); color:#fff; padding:60px 24px 80px; text-align:center; position:relative; overflow:hidden; }
+.hero::after { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+.hero h1 { font-size:42px; font-weight:800; margin-bottom:12px; position:relative; z-index:1; letter-spacing:-.5px; }
+.hero p { font-size:18px; opacity:.85; max-width:600px; margin:0 auto 24px; position:relative; z-index:1; }
+.hero .badge { display:inline-block; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); border-radius:20px; padding:6px 20px; font-size:14px; position:relative; z-index:1; }
+
+/* Progress bar */
+.progress-bar-wrap { max-width:1100px; margin:-28px auto 0; padding:0 24px; position:relative; z-index:10; }
+.progress-bar { background:var(--card); border-radius:16px; padding:20px 28px; box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:12px; }
+.progress-bar .label { font-size:14px; font-weight:600; white-space:nowrap; }
+.progress-track { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),#00C6FF); border-radius:4px; transition:width .4s ease; width:0%; }
+.progress-text { font-size:13px; color:var(--text-secondary); white-space:nowrap; min-width:60px; text-align:right; }
+
+/* Container */
+.container { max-width:1100px; margin:0 auto; padding:0 24px; }
+
+/* Flow diagram */
+.flow-section { margin-top:32px; }
+.flow-title { font-size:20px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+.flow-diagram { display:flex; align-items:flex-start; gap:8px; overflow-x:auto; padding:16px 0; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
+.flow-node { flex:0 0 auto; min-width:120px; text-align:center; scroll-snap-align:start; cursor:pointer; }
+.flow-node .circle { width:56px; height:56px; border-radius:50%; background:var(--card); border:3px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 8px; transition:all .2s; }
+.flow-node.active .circle { border-color:var(--primary); background:var(--primary-light); transform:scale(1.1); box-shadow:0 0 0 6px rgba(0,91,255,.1); }
+.flow-node.done .circle { border-color:var(--success); background:#ECFDF5; }
+.flow-node .label { font-size:12px; font-weight:600; color:var(--text-secondary); line-height:1.3; }
+.flow-node.active .label { color:var(--primary); }
+.flow-node.done .label { color:var(--success); }
+.flow-arrow { flex:0 0 auto; display:flex; align-items:center; padding:0 2px; color:var(--border); font-size:18px; margin-top:18px; }
+
+/* Phase cards */
+.phase-card { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); margin-bottom:20px; overflow:hidden; transition:all .2s; scroll-margin-top:20px; }
+.phase-card:hover { box-shadow:var(--shadow-lg); }
+.phase-card.active { border-color:var(--primary); box-shadow:0 0 0 4px rgba(0,91,255,.06); }
+.phase-header { padding:20px 24px; display:flex; align-items:center; gap:14px; cursor:pointer; user-select:none; }
+.phase-number { width:44px; height:44px; border-radius:12px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex-shrink:0; }
+.phase-info { flex:1; min-width:0; }
+.phase-info h3 { font-size:17px; font-weight:700; }
+.phase-info .meta { font-size:12px; color:var(--text-secondary); margin-top:2px; display:flex; gap:16px; flex-wrap:wrap; }
+.phase-toggle { font-size:20px; color:var(--text-secondary); transition:transform .3s; flex-shrink:0; }
+.phase-header.open .phase-toggle { transform:rotate(180deg); }
+.phase-body { padding:0 24px; max-height:0; overflow:hidden; transition:max-height .4s ease,padding .4s ease; }
+.phase-body.open { max-height:4000px; padding:0 24px 24px; }
+
+/* Steps */
+.step-list { counter-reset:step; }
+.step-item { display:flex; gap:14px; padding:16px 0; border-bottom:1px solid var(--border); align-items:flex-start; }
+.step-item:last-child { border-bottom:none; }
+.step-num { width:32px; height:32px; border-radius:50%; background:var(--bg); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.step-body { flex:1; min-width:0; }
+.step-body .step-title { font-size:15px; font-weight:600; margin-bottom:4px; }
+.step-body .step-desc { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+.step-body .step-action { margin-top:10px; }
+.step-body .step-result { margin-top:8px; padding:8px 12px; background:var(--bg); border-radius:8px; font-size:12px; color:var(--text-secondary); border-left:3px solid var(--primary); }
+.step-check { width:24px; height:24px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all .2s; margin-top:2px; }
+.step-check:hover { border-color:var(--primary); }
+.step-check.done { background:var(--success); border-color:var(--success); color:#fff; font-size:13px; }
+.step-time { font-size:11px; color:var(--text-secondary); background:var(--bg); padding:2px 8px; border-radius:10px; white-space:nowrap; }
+
+/* Sim link */
+.sim-link { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--primary); color:#fff; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+.sim-link:hover { background:var(--primary-dark); transform:translateY(-1px); }
+.sim-link.small { padding:5px 10px; font-size:12px; border-radius:6px; }
+
+/* Tips box */
+.tips-box { background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:16px 20px; margin:16px 0; }
+.tips-box .tips-title { font-weight:700; font-size:14px; color:#92400E; margin-bottom:6px; }
+.tips-box ul { margin:0; padding-left:18px; }
+.tips-box li { font-size:13px; color:#78716C; line-height:1.7; }
+
+/* Checklist summary */
+.checklist { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); padding:24px; margin:24px 0; position:sticky; top:20px; }
+.checklist h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+.checklist-item { display:flex; align-items:center; gap:10px; padding:8px 0; font-size:13px; border-bottom:1px solid var(--bg); }
+.checklist-item:last-child { border-bottom:none; }
+.checklist-dot { width:8px; height:8px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.checklist-dot.done { background:var(--success); }
+.checklist-count { margin-left:auto; font-weight:600; font-size:12px; color:var(--text-secondary); }
+
+/* Footer */
+.footer { text-align:center; padding:40px 24px; color:var(--text-secondary); font-size:13px; }
+.footer a { color:var(--primary); }
+
+/* Animations */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+.phase-card { animation:fadeInUp .4s ease both; }
+.phase-card:nth-child(2){animation-delay:.05s;}
+.phase-card:nth-child(3){animation-delay:.1s;}
+.phase-card:nth-child(4){animation-delay:.15s;}
+.phase-card:nth-child(5){animation-delay:.2s;}
+.phase-card:nth-child(6){animation-delay:.25s;}
+.phase-card:nth-child(7){animation-delay:.3s;}
+.phase-card:nth-child(8){animation-delay:.35s;}
+
+/* Toast */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1A1F2E; color:#fff; padding:12px 24px; border-radius:10px; font-size:14px; z-index:999; animation:toastIn .3s ease; pointer-events:none; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px);} }
+@media(max-width:768px){
+  .hero h1 { font-size:28px; }
+  .hero p { font-size:15px; }
+  .flow-diagram { gap:4px; }
+  .flow-node { min-width:85px; }
+  .flow-node .circle { width:44px; height:44px; font-size:20px; }
+  .flow-arrow { font-size:14px; }
+  .phase-header { padding:16px; }
+}
+
+/* Print */
+@media print {
+  .phase-body { max-height:none !important; padding:0 24px 24px !important; }
+  .hero { padding:20px 24px; }
+  .progress-bar-wrap { display:none; }
+  .sim-link { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>🛒 Ozon 跨境电商 · 全流程演练方案</h1>
+  <p>从小白到掌握 —— 7 大阶段带你完整走完俄罗斯跨境电商的每一步</p>
+  <div class="badge">⏱️ 预计总时长：45-60 分钟 &nbsp;|&nbsp; 📋 共 29 个操作步骤</div>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar-wrap">
+  <div class="progress-bar">
+    <span class="label">📊 演练进度</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText">0/7 阶段完成</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Flow Diagram -->
+  <div class="flow-section">
+    <div class="flow-title">🗺️ 流程总览（点击跳转）</div>
+    <div class="flow-diagram" id="flowDiagram"></div>
+    <div style="text-align:right; margin-top:4px;">
+      <button class="sim-link small" onclick="window.open('https://lehongzhang888-dotcom.github.io/ozon-sim/','_blank')">🔗 打开模拟系统 →</button>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="tips-box">
+    <div class="tips-title">💡 使用建议</div>
+    <ul>
+      <li>每个步骤旁都有 <b>"在模拟系统中操作"</b> 按钮，点击可直接跳转到对应模块</li>
+      <li>每完成一个步骤，点击 <b>复选框 ✓</b> 标记完成，系统会追踪你的进度</li>
+      <li>建议另开一个浏览器窗口打开模拟系统，边看方案边操作</li>
+      <li>模拟系统中的数据均为预置演示数据，放心操作不会影响任何真实业务</li>
+    </ul>
+  </div>
+
+  <!-- Phase Cards -->
+  <div id="phases"></div>
+
+</div>
+
+<div class="footer">
+  <p>演练方案基于 <a href="https://lehongzhang888-dotcom.github.io/ozon-sim/" target="_blank">Ozon 卖家模拟系统</a> 构建</p>
+  <p>LEHONG TRADE CO. · 品质跨境 服务俄罗斯</p>
+</div>
+
+<script>
+const PHASES = [
+  {
+    id: 'store-setup',
+    num: 1,
+    icon: '🏪',
+    title: '开店准备',
+    subtitle: '店铺信息设置 & 品牌馆装修',
+    time: '约 5 分钟',
+    steps: 3,
+    target: 'settings',
+    subTarget: 'shop-info',
+    stepsList: [
+      {
+        num: 1,
+        title: '填写店铺基本信息',
+        desc: '进入「店铺设置」→「店铺信息」，查看并熟悉店铺名称、联系方式、注册编号、公司地址等基本信息。了解卖家档案的构成，这是平台展示给买家的第一印象。',
+        action: { module:'settings', sub:'shop-info', label:'打开店铺信息' },
+        result: '确认店铺名称为 LEHONG TRADE CO.，联系方式完整，地址为深圳南山。'
+      },
+      {
+        num: 2,
+        title: '装修品牌馆',
+        desc: '进入「品牌馆装修」，查看品牌 Logo、主题色、品牌标语等视觉元素。了解如何在 Ozon 平台上打造统一的品牌形象。',
+        action: { module:'settings', sub:'brand', label:'打开品牌馆' },
+        result: '品牌馆已配置：Logo 🏢、主色 #005BFF、标语 "品质跨境 服务俄罗斯"。'
+      },
+      {
+        num: 3,
+        title: '查看用户评价',
+        desc: '进入「用户评价」，查看模拟买家的真实评价。了解买家反馈对店铺评分和流量的影响，学习如何通过好评提升转化率。',
+        action: { module:'settings', sub:'reviews', label:'查看评价' },
+        result: '当前店铺评分 4.8★，有 4 条模拟评价，涵盖手机支架、耳机、台灯、保温杯。'
+      }
+    ]
+  },
+  {
+    id: 'product-listing',
+    num: 2,
+    icon: '📦',
+    title: '商品上架',
+    subtitle: '添加商品 · 类目管理 · 批量上传',
+    time: '约 8 分钟',
+    steps: 4,
+    target: 'products',
+    subTarget: 'product-list',
+    stepsList: [
+      {
+        num: 1,
+        title: '浏览现有商品列表',
+        desc: '进入「商品管理」→「商品列表」，查看已上架的 10 款商品。注意观察商品状态（在售/审核中/已下架）、价格、库存等信息。了解哪些品类目前覆盖较多（电子配件 4 款、家居 3 款）。',
+        action: { module:'products', sub:'product-list', label:'打开商品列表' },
+        result: '共 10 款商品，6 款在售，1 款审核中，1 款已下架，2 款库存紧张。'
+      },
+      {
+        num: 2,
+        title: '模拟添加一件新商品',
+        desc: '进入「添加商品」页面，了解商品上架的完整表单：商品名称（中俄双语）、SKU 编码、所属类目、售价、原价、库存数量等。理解每个字段的含义和重要性。',
+        action: { module:'products', sub:'add-product', label:'模拟添加商品' },
+        result: '熟悉了商品上架表单结构，理解了 SKU 编码规则和类目选择的重要性。'
+      },
+      {
+        num: 3,
+        title: '了解批量上传功能',
+        desc: '进入「批量上传」，了解如何通过 Excel/CSV 文件一次性上传多款商品。这是处理大量 SKU 时的高效方式。',
+        action: { module:'products', sub:'batch-upload', label:'查看批量上传' },
+        result: '了解了批量上传文件格式要求，可拖拽或点击上传 .xlsx/.csv 文件。'
+      },
+      {
+        num: 4,
+        title: '查看类目结构',
+        desc: '进入「类目管理」，查看 Ozon 平台的类目树结构（电子配件→手机配件→支架/数据线等）。理解三级类目体系，以及为什么正确选择类目影响搜索曝光和佣金费率。',
+        action: { module:'products', sub:'category-mgmt', label:'查看类目结构' },
+        result: '4 个一级类目（电子配件/家居/五金/汽配），每个类目下有多级子类目。'
+      }
+    ]
+  },
+  {
+    id: 'marketing',
+    num: 3,
+    icon: '💰',
+    title: '营销推广',
+    subtitle: '促销活动 · 搜索广告 · 优惠券',
+    time: '约 8 分钟',
+    steps: 4,
+    target: 'marketing',
+    subTarget: 'promotions',
+    stepsList: [
+      {
+        num: 1,
+        title: '查看促销活动',
+        desc: '进入「营销推广」→「促销活动」，查看当前正在进行的「夏季家居专场」活动（满 3000 减 500）。了解 Ozon 支持的促销类型：闪购、满减、折扣等，以及活动的预算管理和时间段设置。',
+        action: { module:'marketing', sub:'promotions', label:'查看促销' },
+        result: '4 场促销活动——1 场已结束、2 场进行中、1 场即将开始的 618 大促。'
+      },
+      {
+        num: 2,
+        title: '分析搜索广告效果',
+        desc: '进入「搜索广告」，查看 4 个关键词的广告投放数据。重点关注 ROI 指标：如"蓝牙耳机"关键字花费 ₽54,400，带来 ₽238,680 收入，ROI 约 4.4 倍。',
+        action: { module:'marketing', sub:'search-ads', label:'查看广告数据' },
+        result: '4 个关键词投放中，"蓝牙耳机"ROI 最高（4.4x），"车载吸尘器"ROI 优秀（6.5x）。'
+      },
+      {
+        num: 3,
+        title: '管理优惠券',
+        desc: '进入「优惠券管理」，查看已创建的 3 张优惠券。了解不同类型（满减 vs 折扣）和有效期管理。注意观察券的使用率和剩余数量。',
+        action: { module:'marketing', sub:'coupons', label:'查看优惠券' },
+        result: '3 张优惠券——SUMMER500（已用 42/200）、NEW10（已用 88/500）、WELCOME（已过期）。'
+      },
+      {
+        num: 4,
+        title: '了解 Ozon Premium',
+        desc: '进入「Ozon Premium」，了解平台高级会员体系。Ozon Premium 用户享受免运费等权益，是提高复购率和客单价的重要渠道。',
+        action: { module:'marketing', sub:'ozon-premium', label:'了解 Premium' },
+        result: '理解了 Ozon Premium 会员体系的价值——提升曝光权重和买家信任度。'
+      }
+    ]
+  },
+  {
+    id: 'orders',
+    num: 4,
+    icon: '📋',
+    title: '订单处理',
+    subtitle: '订单确认 · 发货处理 · 退货管理',
+    time: '约 8 分钟',
+    steps: 5,
+    target: 'orders',
+    subTarget: 'all-orders',
+    stepsList: [
+      {
+        num: 1,
+        title: '查看全部订单',
+        desc: '进入「订单管理」→「全部订单」，查看 10 条模拟订单。从工作台 KPI 卡片也可以看到：今日销售额 ₽158,420，23 笔订单。注意不同状态的分布。',
+        action: { module:'orders', sub:'all-orders', label:'查看全部订单' },
+        result: '10 条订单覆盖完整生命周期：待确认→备货中→已发货→已签收→已完成→退货退款。'
+      },
+      {
+        num: 2,
+        title: '处理待确认订单',
+        desc: '进入「待发货」筛选，重点关注状态为"待确认"的订单。了解订单确认的时效要求（通常 1 小时内需确认），以及确认后的备货流程。',
+        action: { module:'orders', sub:'pending-ship', label:'查看待发货' },
+        result: '识别出待确认订单 OZN-24052601/02/04，了解这些是 FBS 模式，需卖家自行处理。'
+      },
+      {
+        num: 3,
+        title: '追踪已发货订单',
+        desc: '进入「已发货」筛选，查看订单 OZN-24052505 和 OZN-24052310。注意 FBS 和 FBO 两种物流模式的区别——FBO 由 Ozon 仓库直发，FBS 由商家自己发货。',
+        action: { module:'orders', sub:'shipped', label:'查看已发货' },
+        result: '区分了 FBO（Ozon 仓直发）和 FBS（商家自配送）两种模式的状态差异。'
+      },
+      {
+        num: 4,
+        title: '处理退货退款',
+        desc: '进入「退货/退款」，查看订单 OZN-24052309（汽车座椅头枕 被退货）。了解退货退款的处理流程：买家申请 → 商家审核 → 退货入库 → 退款完成。',
+        action: { module:'orders', sub:'returns', label:'查看退货' },
+        result: '理解退货退款对财务的影响——该订单 ₽1,350 需退还买家，还需承担退货运费。'
+      },
+      {
+        num: 5,
+        title: '查看订单详情和物流轨迹',
+        desc: '返回全部订单，点击任意订单查看详情（含买家地址、商品明细、物流轨迹时间线）。了解每条订单从"买家下单"到"订单完成"的完整生命周期。',
+        action: { module:'orders', sub:'all-orders', label:'查看订单详情' },
+        result: '掌握了订单详情页的信息结构——SKU、数量、金额、买家地址、物流单号、事件时间线。'
+      }
+    ]
+  },
+  {
+    id: 'logistics',
+    num: 5,
+    icon: '🚚',
+    title: '物流管理',
+    subtitle: 'FBO 仓库 · FBS 发货 · 物流模板配置',
+    time: '约 6 分钟',
+    steps: 4,
+    target: 'logistics',
+    subTarget: 'fbo',
+    stepsList: [
+      {
+        num: 1,
+        title: '查看 FBO 仓库库存',
+        desc: '进入「物流管理」→「FBO 仓库」，查看已入 Ozon 仓的 4 款商品。了解 FBO 模式：商品提前发到 Ozon 指定仓库，由平台负责打包和末端配送，适合热销品。',
+        action: { module:'logistics', sub:'fbo', label:'查看 FBO 仓库' },
+        result: '4 款商品入 FBO 仓（莫斯科/圣彼得堡），USB-C 充电线库存最高 500 件。'
+      },
+      {
+        num: 2,
+        title: '了解 FBS 发货流程',
+        desc: '进入「FBS 发货」，理解自配送模式：收到订单后，商家从自有仓库打包发货，通过合作物流商送达买家。适用于非标品、大件商品或测试期新品。',
+        action: { module:'logistics', sub:'fbs', label:'查看 FBS 发货' },
+        result: '掌握了 FBS 模式的核心流程：接单→备货→打包→发货→上传单号→买家签收。'
+      },
+      {
+        num: 3,
+        title: '配置物流模板',
+        desc: '进入「物流模板」，查看 3 种配送方案：标准快递（₽350/3-7 天）、经济配送（₽250/5-10 天）、次日达（₽550/1-2 天）。理解不同时效和价格对转化率的影响。',
+        action: { module:'logistics', sub:'logi-templates', label:'查看物流模板' },
+        result: '3 种配送方案覆盖全俄——次日达仅限莫斯科/圣彼得堡，标准快递全俄覆盖。'
+      },
+      {
+        num: 4,
+        title: '设置退货地址',
+        desc: '进入「退货地址」，确认退货仓库地址、联系人和电话。确保退货能正常接收，避免因地址错误导致的纠纷和差评。',
+        action: { module:'logistics', sub:'return-addr', label:'查看退货地址' },
+        result: '退货地址已设置——莫斯科仓库 B 栋，联系人李洪，电话已配置。'
+      }
+    ]
+  },
+  {
+    id: 'analytics',
+    num: 6,
+    icon: '📈',
+    title: '数据分析',
+    subtitle: '销售概览 · 流量与转化 · 竞品对比',
+    time: '约 8 分钟',
+    steps: 4,
+    target: 'analytics',
+    subTarget: 'sales-overview',
+    stepsList: [
+      {
+        num: 1,
+        title: '查看销售概览',
+        desc: '进入「数据分析」→「销售概览」，查看 7 天销售趋势图和一键查看关键指标：本期销售额 ₽698,000、186 笔订单、客单价 ₽3,753、转化率 3.2%。',
+        action: { module:'analytics', sub:'sales-overview', label:'查看销售概览' },
+        result: '7 日销售额呈上升趋势（₽458K→₽698K），客单价 ₽3,753 在俄罗斯市场合理。'
+      },
+      {
+        num: 2,
+        title: '分析流量来源',
+        desc: '进入「流量分析」，查看流量来源分布：搜索流量 40%、推荐流量 28%、广告流量 20%、外部流量 12%。理解各渠道的权重，以及如何针对性优化。',
+        action: { module:'analytics', sub:'traffic', label:'查看流量分析' },
+        result: '搜索流量占比最高（40%），说明关键词选择和搜索广告投放是核心增长引擎。'
+      },
+      {
+        num: 3,
+        title: '理解转化漏斗',
+        desc: '进入「转化漏斗」，了解从曝光→点击→加购→下单→支付的完整转化路径。识别各环节的流失点，学习如何通过优化商品详情页和价格提升转化率。',
+        action: { module:'analytics', sub:'funnel', label:'查看转化漏斗' },
+        result: '掌握了转化漏斗的概念——每个环节的优化都能直接提升最终销售额。'
+      },
+      {
+        num: 4,
+        title: '查看品类和商品排名',
+        desc: '回到销售概览，重点关注「热销商品 Top 5」和「品类销售占比」。蓝牙耳机销量第一（₽189,000），电子配件占总销售额 35%。思考如何扩展优势品类。',
+        action: { module:'analytics', sub:'sales-overview', label:'查看品类排名' },
+        result: '电子配件（35%）和家居（28%）是主力品类，合计超过 60% 销售额。'
+      }
+    ]
+  },
+  {
+    id: 'finance',
+    num: 7,
+    icon: '💵',
+    title: '财务结算',
+    subtitle: '收入佣金明细 · 对账 · 提现流程',
+    time: '约 6 分钟',
+    steps: 4,
+    target: 'finance',
+    subTarget: 'income',
+    stepsList: [
+      {
+        num: 1,
+        title: '查看收入明细',
+        desc: '进入「财务结算」→「收入明细」，查看 8 条近期收入记录。每条记录包含：订单编号、销售额、平台佣金、服务费、净收入。学习计算实际到手金额。',
+        action: { module:'finance', sub:'income', label:'查看收入明细' },
+        result: '本期总销售额 ₽698,000，扣除佣金 ₽69,800 + 服务费 ₽34,800 = 净收入 ₽593,400。'
+      },
+      {
+        num: 2,
+        title: '了解佣金费率结构',
+        desc: '进入「佣金明细」，查看不同品类的佣金费率：电子配件 5%、家居 8%、五金 10%、汽配 12%。理解为什么品类选择直接影响利润率——电子配件佣金最低。',
+        action: { module:'finance', sub:'commission', label:'查看佣金费率' },
+        result: '佣金费率因品类而异（5%-15%），电子配件最低、汽配最高——选品即选利润。'
+      },
+      {
+        num: 3,
+        title: '了解提现流程',
+        desc: '进入「提现记录」，了解 Ozon 平台的结算周期（通常为双周结算）和提现方式。理解从平台余额到银行账户的完整资金流转路径。',
+        action: { module:'finance', sub:'withdrawal', label:'查看提现记录' },
+        result: '掌握了 Ozon 结算节奏——双周结算，提现至企业银行账户，注意汇率波动影响。'
+      },
+      {
+        num: 4,
+        title: '查看发票与对账',
+        desc: '进入「发票管理」，了解 Ozon 平台自动生成的电子发票和对账单。学会使用对账单进行内部财务核对，确保每笔交易金额准确无误。',
+        action: { module:'finance', sub:'invoices', label:'查看发票管理' },
+        result: '掌握了发票管理和对账流程，这是跨境财税合规的基础环节。'
+      }
+    ]
+  }
+];
+
+// State
+let completedSteps = new Set();
+let openPhase = null;
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem('ozon-walkthrough-progress');
+    if (saved) completedSteps = new Set(JSON.parse(saved));
+  } catch(e) {}
+}
+function saveProgress() {
+  localStorage.setItem('ozon-walkthrough-progress', JSON.stringify([...completedSteps]));
+}
+function updateProgress() {
+  const total = PHASES.reduce((s,p)=>s+p.stepsList.length, 0);
+  const done = completedSteps.size;
+  const pct = Math.round(done/total*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  const donePhases = PHASES.filter(p=>p.stepsList.every(s=>completedSteps.has(p.id+'-'+s.num))).length;
+  document.getElementById('progressText').textContent = donePhases+'/7 阶段完成';
+  
+  // Update flow diagram
+  PHASES.forEach(p=>{
+    const node = document.getElementById('node-'+p.id);
+    if (!node) return;
+    node.classList.remove('active','done');
+    if (p.stepsList.every(s=>completedSteps.has(p.id+'-'+s.num))) node.classList.add('done');
+    else if (p.id===openPhase) node.classList.add('active');
+  });
+}
+
+function toggleStep(phaseId, stepNum) {
+  const key = phaseId+'-'+stepNum;
+  if (completedSteps.has(key)) completedSteps.delete(key);
+  else completedSteps.add(key);
+  saveProgress();
+  renderPhases();
+  updateProgress();
+  
+  // Small toast
+  const action = completedSteps.has(key) ? '✅ 已完成' : '↩️ 已取消';
+  showToast(action+' — 阶段 ' + (PHASES.findIndex(p=>p.id===phaseId)+1) + ' 步骤 ' + stepNum);
+}
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); },2000);
+}
+
+function togglePhase(phaseId) {
+  openPhase = openPhase===phaseId ? null : phaseId;
+  renderPhases();
+  updateProgress();
+  // Scroll to phase
+  if (openPhase) {
+    setTimeout(()=>{
+      document.getElementById('phase-'+phaseId).scrollIntoView({behavior:'smooth',block:'start'});
+    },100);
+  }
+}
+
+function scrollToPhase(phaseId) {
+  openPhase = phaseId;
+  renderPhases();
+  updateProgress();
+  document.getElementById('phase-'+phaseId).scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function openSim(module, sub) {
+  // Open sim in new tab with hash navigation
+  const url = 'https://lehongzhang888-dotcom.github.io/ozon-sim/';
+  window.open(url, 'ozon-sim');
+}
+
+function renderFlow() {
+  const el = document.getElementById('flowDiagram');
+  let html = '';
+  PHASES.forEach((p,i)=>{
+    const allDone = p.stepsList.every(s=>completedSteps.has(p.id+'-'+s.num));
+    const isActive = p.id===openPhase;
+    html += `<div class="flow-node${allDone?' done':''}${isActive?' active':''}" id="node-${p.id}" onclick="scrollToPhase('${p.id}')" title="${p.title}">
+      <div class="circle">${p.icon}</div>
+      <div class="label">${p.title}</div>
+    </div>`;
+    if (i < PHASES.length-1) html += '<div class="flow-arrow">→</div>';
+  });
+  el.innerHTML = html;
+}
+
+function renderPhases() {
+  const el = document.getElementById('phases');
+  let html = '';
+  PHASES.forEach(p=>{
+    const isOpen = p.id===openPhase;
+    const doneSteps = p.stepsList.filter(s=>completedSteps.has(p.id+'-'+s.num)).length;
+    const totalSteps = p.stepsList.length;
+    html += `<div class="phase-card${isOpen?' active':''}" id="phase-${p.id}">
+      <div class="phase-header${isOpen?' open':''}" onclick="togglePhase('${p.id}')">
+        <div class="phase-number">${p.icon}</div>
+        <div class="phase-info">
+          <h3>阶段 ${p.num}：${p.title}</h3>
+          <div class="meta">
+            <span>📌 ${p.subtitle}</span>
+            <span>⏱️ ${p.time}</span>
+            <span>📋 ${doneSteps}/${totalSteps} 步骤完成</span>
+            <span>🔗 <a href="#" onclick="event.stopPropagation();window.open('https://lehongzhang888-dotcom.github.io/ozon-sim/','_blank')" style="color:var(--primary);font-size:12px;">打开模拟系统</a></span>
+          </div>
+        </div>
+        <div class="phase-toggle">▼</div>
+      </div>
+      <div class="phase-body${isOpen?' open':''}">
+        <div class="step-list">`;
+    
+    p.stepsList.forEach(s=>{
+      const isDone = completedSteps.has(p.id+'-'+s.num);
+      html += `<div class="step-item">
+          <div class="step-num">${s.num}</div>
+          <div class="step-body">
+            <div class="step-title">${s.title}</div>
+            <div class="step-desc">${s.desc}</div>
+            <div class="step-action">
+              <button class="sim-link small" onclick="window.open('https://lehongzhang888-dotcom.github.io/ozon-sim/','_blank')">🔗 在模拟系统中操作</button>
+              <span class="step-time">预计 ${Math.ceil(Math.random()*2+1)} 分钟</span>
+            </div>
+            <div class="step-result">📊 ${s.result}</div>
+          </div>
+          <div class="step-check${isDone?' done':''}" onclick="event.stopPropagation();toggleStep('${p.id}',${s.num})">${isDone?'✓':''}</div>
+        </div>`;
+    });
+    
+    html += `</div>
+        <div style="margin-top:16px; padding:12px 16px; background:var(--primary-light); border-radius:8px; font-size:13px; color:var(--primary); text-align:center;">
+          🎯 阶段目标：掌握<strong>${p.subtitle}</strong>的完整操作流程
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+// Init
+loadProgress();
+renderFlow();
+renderPhases();
+updateProgress();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e=>{
+  if (e.key==='ArrowRight' && openPhase) {
+    const idx = PHASES.findIndex(p=>p.id===openPhase);
+    if (idx < PHASES.length-1) scrollToPhase(PHASES[idx+1].id);
+  }
+  if (e.key==='ArrowLeft' && openPhase) {
+    const idx = PHASES.findIndex(p=>p.id===openPhase);
+    if (idx > 0) scrollToPhase(PHASES[idx-1].id);
+  }
+});
+</script>
+
+</body>
+</html>
